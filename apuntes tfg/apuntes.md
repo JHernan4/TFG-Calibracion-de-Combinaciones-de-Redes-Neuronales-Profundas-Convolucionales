@@ -1,6 +1,6 @@
 
 
-# Conceptos previos acerca de redes neuronales
+# Conceptos acerca de redes neuronales
 
 ### 1. Minimización de la función de coste asociada. 
 
@@ -92,9 +92,9 @@ El objetivo es maximizar esa función de verosimilitud, y minimizar su inversa (
 
 La distribución de Bernoulli está estréchamente relacionada al concepto de entropía en informática. La entropía en información mide la cantidad de incertidumbre. En este caso, medirá la incertidumbre de la predicción realizada por nuestra red neuronal. Para entender la relación, basta con saber que cuanto más cerca se esté de los extremos (0,1) más baja será la entropía (siendo 0 el mínimo), ya que la probabilidad de que sea 0 o 1 será máxima o mínima, pero no habrá dudas. Sin embargo, para valores en torno al 0.5, la entropía será máxima (1) ya que será igual de probable que el valor pertenezca a una clase que a otra y por tanto la incertidumbre es mayor.
 
-#### 1.3 Problema... ¿y si tenemos más de una clase?
+#### 1.3 Problema... ¿y si tenemos varias clases?
 
-Si en nuestras entradas de datos, los datos se clasifican en más de una clase, las dos alternativas anteriores no son válidas.  En este caso, podremos asumir (debemos asumir) que nuestros datos están regidos por una **distribución categórica**
+Si en nuestras entradas de datos, los datos se clasifican en varias clases, las dos alternativas anteriores no son válidas.  En este caso, podremos asumir (debemos asumir) que nuestros datos están regidos por una **distribución categórica**
 
 A la hora de asumir que los datos siguen una distribución categórica, asumimos a su vez que las clases están codificadas en vectores de tamaño *nClases*. Poniendo como ejemplo que los datos se clasifican en 3 clases:
 
@@ -133,7 +133,7 @@ En esta sección se ha visto que el objetivo principal será el de maximizar la 
 
 En función del número de clases en que se clasifiquen nuestros datos, elegiremos unas distribuciones u otras:
 
-+ Si nuestros datos se clasifican solo en **una clase** (poco común): Hemos visto dos posibilidades: los datos pueden estar regidos por una distribución de probabilidad continua (en este caso hemos supuesto que Gaussiana) o por una distribución de probabilidad discreta (Bernoulli). 
++ Si nuestros datos se clasifican solo en **dos clases (0,1)** (poco común): Hemos visto dos posibilidades: los datos pueden estar regidos por una distribución de probabilidad continua (en este caso hemos supuesto que Gaussiana) o por una distribución de probabilidad discreta (Bernoulli). 
 
   + Para la Gaussiana hemos obtenido el siguiente gradiente de la función de verosimilitud, correspondiente con la inversa de la función de coste del error cuadrático medio (que sería con signo contrario)
     $$
@@ -153,7 +153,14 @@ En función del número de clases en que se clasifiquen nuestros datos, elegirem
   $$
   
 
+### 2. Funciones de activación
 
+En función de la distribución que sigan nuestros datos, va a ser necesario que nuestra red neuronal aplique una función de activación u otra. Generalmente, estas funciones debe ser continuas*, diferenciables y monótonamente no-decrecientes. Como hemos visto antes, el uso de las distribuciones depende de un criterio, el nº de clases que se usan para clasificar datos. Empleando el mismo criterio, se presentan como ejemplos las siguientes funciones de activación (las más comunes para cada caso):
+
+- Para datos que se clasifican en dos clases (binaria por ejemplo), lo normal es utilizar una función de activación como la **sigmoide**. Esta función recibe un valor en el intervalo de los reales y a su salida lo mapea en el intervalo [0,1]. 
+- Cuando los datos se clasifican en varias clases en cambio, el uso de la sigmoide es inviable, pero surgen alternativas como la la función **softmax**, de idéntico comportamiento que la sigmoide pero aceptando multitud de clases. 
+
+Sin embargo, está probado que la función que mejores resultados proporciona, especialmente en redes convolucionales o redes neuronales profundas en general es la función **ReLu**, función rampa o función rectificadora. Esta función, a diferencia de las mencionadas anteriormente, es lineal (sigmoide y softmax no lo son) y no devuelve valores acotados en un intervalo tan pequeño. Además, elimina los valores negativos (estableciéndolos a 0) y en cambio si da importancia a los positivos, de tal forma que la entrada de un valor negativo se transforma a  0 y no se propaga y la entrada de un valor positivo si será propagada por la red neuronal. *Su único inconveniente es que esta función no es continua en 0, por lo que hay que asegurarse que todas las entradas netas no sean nulas.
 
 
 
