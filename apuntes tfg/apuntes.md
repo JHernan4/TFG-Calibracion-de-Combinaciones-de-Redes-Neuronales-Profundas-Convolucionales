@@ -1,3 +1,5 @@
+
+
 # Conceptos previos acerca de redes neuronales
 
 ### 1. Minimización de la función de coste asociada. 
@@ -66,7 +68,7 @@ Otra posibilidad (más frecuente) es que los datos sigan una distribución discr
 
 En este caso la función de probabilidad cambia, puesto que la Bernoulli sigue la siguiente función de probabilidad.
 $$
-\mu^{x_i} (1-\mu)^{1-x_i}
+P(y=k)\mu^{x_i} (1-\mu)^{1-x_i}
 $$
 En este caso la distribución acepta solo dos valores (0,1). Nuestro objetivo sin embargo es el mismo que el anterior. Estimar la derivada de la función de verosimilitud para maximizarla.
 $$
@@ -90,25 +92,66 @@ El objetivo es maximizar esa función de verosimilitud, y minimizar su inversa (
 
 La distribución de Bernoulli está estréchamente relacionada al concepto de entropía en informática. La entropía en información mide la cantidad de incertidumbre. En este caso, medirá la incertidumbre de la predicción realizada por nuestra red neuronal. Para entender la relación, basta con saber que cuanto más cerca se esté de los extremos (0,1) más baja será la entropía (siendo 0 el mínimo), ya que la probabilidad de que sea 0 o 1 será máxima o mínima, pero no habrá dudas. Sin embargo, para valores en torno al 0.5, la entropía será máxima (1) ya que será igual de probable que el valor pertenezca a una clase que a otra y por tanto la incertidumbre es mayor.
 
+#### 1.3 Problema... ¿y si tenemos más de una clase?
 
+Si en nuestras entradas de datos, los datos se clasifican en más de una clase, las dos alternativas anteriores no son válidas.  En este caso, podremos asumir (debemos asumir) que nuestros datos están regidos por una **distribución categórica**
 
-#### 1.3 Conclusiones
+A la hora de asumir que los datos siguen una distribución categórica, asumimos a su vez que las clases están codificadas en vectores de tamaño *nClases*. Poniendo como ejemplo que los datos se clasifican en 3 clases:
+
+- [1,0,0] hace referencia a la clase 1
+- [0,1,0] hace referencia a la clase 2
+- [0,0,1] hace referencia a la clase 3
+
+La función de probabilidad de la distribución categórica es la siguiente:
+$$
+P(y) = \prod_{k=0}^{k-1} \pi_k^{y_k}
+$$
+Donde *y* hace referencia al valor de la clase *k*. 
+
+**Ejemplo**
+$$
+\pi = (0.4, 0.5, 0.1)
+$$
+Este vector nos muestra las probabilidades de cada clase (en total suman 1 como podemos observar). Aplicando la función de probabilidad de la distribución categórica:
+$$
+P(y=0) = 0.4^1 * 0.5^0 * 0.1^0 = 0.4.
+$$
+A continuación estimaremos la función de coste asociada a la distribución categórica:
+$$
+\prod_{n=0}^{n-1}P(y_n | x_n) = \prod_{i=1}^{n} \prod_{j=1}^{m} P(y=k) = \prod_{i=1}^{n} \prod_{j=1}^{m} \pi_{ij}^{y_{ij}}
+$$
+
+$$
+= \sum_{i=1}^{n} \sum_{j=1}^{m} log(\pi_{ij}^{y_{ij}}) = \sum_{i=1}^{n} \sum_{j=1}^{m} y_{nk}log(\pi_{ij})
+$$
+
+Es ciertamente parecida a la *cross entropy* (componente logarítmica). De hecho esta función de coste se llama *cross entropy categorical* (entropía cruzada categórica).
+
+#### 1.4 Conclusiones
 
 En esta sección se ha visto que el objetivo principal será el de maximizar la función de verosimilitud y minimizar la función de coste asociada. Esto se lleva a cabo con la derivada de la función de probabilidad de la distribución que siguen los datos e igualando esta a 0 (obtenemos así máximos y mínimos).
 
-Hemos visto dos posibilidades: los datos pueden estar regidos por una distirbución de probabilidad continua (en este caso hemos supuesto que Gaussiana) o por una distribución de probabilidad discreta (Bernoulli).
+En función del número de clases en que se clasifiquen nuestros datos, elegiremos unas distribuciones u otras:
 
-* Para la Gaussiana hemos obtenido el siguiente gradiente de la función de verosimilitud, correspondiente con la inversa de la función de coste del error cuadrático medio (que sería con signo contrario)
++ Si nuestros datos se clasifican solo en **una clase** (poco común): Hemos visto dos posibilidades: los datos pueden estar regidos por una distribución de probabilidad continua (en este caso hemos supuesto que Gaussiana) o por una distribución de probabilidad discreta (Bernoulli). 
 
-$$
-\sum_{i=1}^{n}(y_i - w_ix_i)
-$$
+  + Para la Gaussiana hemos obtenido el siguiente gradiente de la función de verosimilitud, correspondiente con la inversa de la función de coste del error cuadrático medio (que sería con signo contrario)
+    $$
+    \sum_{i=1}^{n}(y_i - w_ix_i)
+    $$
+    
 
-* Para la Bernoulli, al cambiar la función de probabilidad, también cambiará la función de verosimilitud y por tanto su derivada. En este caso, obtenemos la correspondiente a la inversa de la función de coste de la entropía curzada (cross entropy) o función de regresión logística
+  + Para la Bernoulli, al cambiar la función de probabilidad, también cambiará la función de verosimilitud y por tanto su derivada. En este caso, obtenemos la correspondiente a la inversa de la función de coste de la entropía curzada (cross entropy) o función de regresión logística
+    $$
+    \sum_{i=1}^{n}y_ilog(w_ix_i) + (1-y_i)log(1-w_ix_i)
+    $$
+    
 
-$$
-\sum_{i=1}^{n}y_ilog(w_ix_i) + (1-y_i)log(1-w_ix_i)
-$$
+- En cambio, lo más frecuente, si nuestros datos se clasifican en **varias clases**, las opciones previamente vistas no son válidas. Se introduce aquí como alternativa la distribución categórica. De la misma forma, presenta una función de verosimilitud que se tratará de maximizar. Para esta distribución la función de máxima verosimilitud es la siguiente:
+  $$
+  \sum_{i=1}^{n} \sum_{j=1}^{m} y_{nk}log(\pi_{ij})
+  $$
+  
 
 
 
