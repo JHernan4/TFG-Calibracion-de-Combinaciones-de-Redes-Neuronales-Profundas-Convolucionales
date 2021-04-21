@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#Author: Juan Maroñas Molano 
+#Author: Juan Maroñas Molano
 
 #Learning pytorch by training using MNIST
 #Start with feed forward networks and fully connected operator
@@ -17,9 +17,7 @@
 
 
 import torch #main module
-if not torch.cuda.is_available():
-	print("Buy a gpu")
-	exit(-1)
+
 import torch.utils.data
 import torch.nn as nn
 import numpy #numpy module
@@ -57,21 +55,22 @@ train_labl[0:50000]=train_set_a[1].astype('int64')
 train_labl[50000:]=valid_set_a[1].astype('int64')#labels in pytorch must be int64
 
 
-test_feat=torch.from_numpy(test_set[0].astype('float32')).cuda() #Create two variables. We can use torch.from_numpy to wrap a numpy array to torch, then use .cuda to move to GPU. The good point of new versions of pytorch is that a torch tensor directly support automatic differentiation (previously we need to wrap it with variable)
-test_labl=torch.from_numpy(test_set[1].astype('int64')).cuda()
+test_feat=torch.from_numpy(test_set[0].astype('float32')) #Create two variables. We can use torch.from_numpy to wrap a numpy array to torch, then use .cuda to move to GPU. The good point of new versions of pytorch is that a torch tensor directly support automatic differentiation (previously we need to wrap it with variable)
+test_labl=torch.from_numpy(test_set[1].astype('int64'))
 
 '''
 Load into pytorch loader
 '''
-#pytorch loader can do many fancy things. We will see in the convolution tutorial. For the moment we just create a TensorDataset with our data. 
-mnist_dataset_train = torch.utils.data.TensorDataset(torch.from_numpy(train_feat).cuda(), torch.from_numpy(train_labl).cuda())
+#pytorch loader can do many fancy things. We will see in the convolution tutorial. For the moment we just create a TensorDataset with our data.
+mnist_dataset_train = torch.utils.data.TensorDataset(torch.from_numpy(train_feat), torch.from_numpy(train_labl))
+
 #Now create a Loader with this data set. We could iterate over this and randonmly sample (shuffle=True) a batch.
 train_loader = torch.utils.data.DataLoader(mnist_dataset_train,batch_size=100,shuffle=True)
 
 '''
 Define functions
 '''
-#Define a function with the typical activations. This activations can be obtained from the nn.Module. 
+#Define a function with the typical activations. This activations can be obtained from the nn.Module.
 def activation(x,tip):
 	if tip=="sof":
 		f=nn.Softmax(dim=1)
@@ -83,11 +82,11 @@ def activation(x,tip):
 		print("activation function not present")
 		exit(-1)
 
-#forward operation. 
+#forward operation.
 def forward(x):
 	x2 = activation(torch.mm(x,w1)+b1,'relu')
 	y_pre_activation = torch.mm(x2,w2)+b2
-	return y_pre_activation 
+	return y_pre_activation
 
 #inference. We can use the forward function, however we explicitly apply softmax here though it is not necessary to compute the argmax.
 #In the next tutorials I cover when, in my opinion, I like make this difference explictly. A reason could be if you want to directly return the softmax output.
@@ -109,10 +108,10 @@ input_d=784
 target_d=10
 
 #Create parameter of the network (shared variables in theano). Requires gradient is important (see apendix A). By default this attribute is set to false, unless is a nn.Parameter (we will cover this in other tutorials)
-w1=torch.from_numpy(numpy.random.normal(0,numpy.sqrt(2.0/float(l1)),(input_d,l1)).astype('float32')).cuda().requires_grad_()
-w2=torch.from_numpy(numpy.random.normal(0,numpy.sqrt(2.0/float(l2)),(l1,l2)).astype('float32')).cuda().requires_grad_()
-b1=torch.zeros((1,l1)).cuda().requires_grad_()
-b2=torch.zeros((1,l2)).cuda().requires_grad_()
+w1=torch.from_numpy(numpy.random.normal(0,numpy.sqrt(2.0/float(l1)),(input_d,l1)).astype('float32')).requires_grad_()
+w2=torch.from_numpy(numpy.random.normal(0,numpy.sqrt(2.0/float(l2)),(l1,l2)).astype('float32')).requires_grad_()
+b1=torch.zeros((1,l1)).requires_grad_()
+b2=torch.zeros((1,l2)).requires_grad_()
 differentiated_params=[w1,w2,b1,b2] #our list with parameters to update
 epochs=20
 
@@ -120,11 +119,11 @@ epochs=20
 for e in range(epochs):
 	ce=0.0
 	for x,t in train_loader: #sample one batch
-		x,t=x,t.cuda()#move to gpu (when variables are one dimensional, such as t, the torch.dataloader move them to CPU, I do not know why). 
+		x,t=x,t #move to gpu (when variables are one dimensional, such as t, the torch.dataloader move them to CPU, I do not know why).
 		predict=forward(x) #forward
 		o=loss(predict,t) #compute loss
 		o.backward() #this compute the gradient which respect to leaves. And this is the reason for required gradients True.  It sould be note that o store the data but also the graph of the variables that have computed this value, in order to perform automatic differentiation. This is the key difference with TensorFlow, we do not need to compile a graph before predicting a value, we just do it online and the graph is created automatically when we perform the different operations.
-		ce+=o.data#store the ce for printing.
+		ce+=o.data #store the ce for printing.
 
 		for p in differentiated_params: #loop over params (this will be the update we pass to Theano function)
 			p.data=p.data-0.01*p.grad.data
@@ -138,7 +137,7 @@ for e in range(epochs):
 
 ################## APPENDIX with explanation ##################
 '''
--PyTorch have two ways of computing gradients. You can call the method grad(x,y) and it wil compute the gradient of x wrt y. 
+-PyTorch have two ways of computing gradients. You can call the method grad(x,y) and it wil compute the gradient of x wrt y.
 
 -Doing this can be tedious when having lots of parameters, as we need a backtrace of what has been done. The backward method compute the gradient of the caller which respect to all the leaves in the graph that requires grad. For example for adding adversarial noise the inputs should require grad. This is the easiest way, just compute the output given the input and call backward method.
 
@@ -148,5 +147,5 @@ for e in range(epochs):
 
 -If we access the .data attribute we recover only the data. I will explain this in the next tutorial.
 
--https://github.com/jcjohnson/pytorch-examples You can find here why this kind of softwares are so powerfull. 
+-https://github.com/jcjohnson/pytorch-examples You can find here why this kind of softwares are so powerfull.
 '''

@@ -1,0 +1,20 @@
+CONV_cifar10.py
+
+---cifar10: colección de imagenes usadas para el entrenamiento de rede neuronales. Uno de los datasets más utilizados
+procedimiento:
+	1. definir transformaciones. Para CIFAR10 en concreto se usa rellenar, recortar y normalizar
+	2. crear conjuntos de datos (cifar10_train y cifar10_test)
+	3. finalmente cargar los datos del conjunto de datos, siguiendo distintas estrategias (procesamiento de datos secuencial o en paralelo, empleando distintos procesos/hilos)
+
+--creación de la red neuronal (usando nn.Module). Se tiene que elegir que tipo de red neuronal se va a usar (en este caso se utilizará ResNet18)
+procedimiento:
+	1. invocar al constructor de la clase de la que heredará la clase (nn.Module) indicando que tipo de red neuronal se quiere construir
+	2. definir caracteristicas de la red neuronal (función de activación, función de coste, nº de clases...)
+	3. Adicionalmente se añaden 8 bloques de 2 covolcuiones *
+
+--definicion del operador para la propagacion de los valores de entrada por la red neuronal
+	+ Se realiza para cada bloque definido previamente (8 en este caso)
+
+--Finalmente, entrenamiento de la red neuronal y explotación. Procedimiento común a los vistos en otros tutoriales (aquí se emplea el optimizador en cada epoca)
+
+* DUDA: ¿por qué solo se hace readapt en algunos bloques y no en todos? Explicación lógica de los bloques
