@@ -2,12 +2,13 @@
 #Author: Juan Maroñas Molano 
 
 #Learning pytorch by training using MNIST
-#Fourth script we train feed forward networks and fully connected operator. Introduce dropout.
+#Start with feed forward networks and fully connected operator
 
 #Things observed in this code:
-#In this example we will:
-	#-Introduce Dropout
-	#-Use dropout in the complicated way, however this will let me show the importance of pytorch dynamic graph.
+	#How pytorch looks like and the most important methods
+	#Typical torch pipeline (without using usefull utilities like torch.nn). Just to show the basic
+	#This code resemble what Theano does but with dynamic computation graph
+	#The tipical machine learning pipeline: forward, cost, backward, update is done in the most simple way
 
 #Subject: Neural Networks for Pattern Recognition
 #Teacher: Roberto Paredes Palacios
@@ -17,14 +18,12 @@
 
 import torch #main module
 if not torch.cuda.is_available():
-	print("unable to run on GPU")
+	print("Buy a gpu")
 	exit(-1)
+import torch.utils.data
+import torch.nn as nn
+import numpy #numpy module
 
-import torchvision #computer vision dataset module
-from torchvision import datasets,transforms
-from torch import nn #Keras users will now be really happy
-
-import numpy
 '''
 Specific parameters of network
 '''
@@ -32,91 +31,117 @@ epochs=10
 batch=100
 data_len=60000
 
-''' Pytorch Data Loader'''
-mnist_transforms=transforms.Compose([transforms.ToTensor()])
-mnist_train=datasets.MNIST('/tmp/',train=True,download=True,transform=mnist_transforms)
-mnist_test=datasets.MNIST('/tmp/',train=False,download=False,transform=mnist_transforms)
+'''
+LOAD MNIST DATASET
+'''
+#download dataset from Montreal webpage. http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz. Place it in /tmp/
+dataset='/tmp/mnist.pkl.gz'
+import gzip
+import pickle
+try:
+	with gzip.open(dataset, 'rb') as f:
+		try:
+			train_set_a, valid_set_a, test_set = pickle.load(f, encoding='latin1')
+		except:
+			in_set_a, valid_set_a, test_set = pickle.load(f)
+except:
+	raise NameError("Execute in the terminal the next command: wget http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz -P /tmp/")
 
-#this is the dataloader
-train_loader = torch.utils.data.DataLoader(mnist_train,batch_size=100,shuffle=True)
-test_loader = torch.utils.data.DataLoader(mnist_test,batch_size=100,shuffle=True)
 
-batch=100
+train_feat=numpy.zeros((60000,784),dtype='float32')
+train_labl=numpy.zeros((60000,),dtype='int64')
+
+train_feat[0:50000,:]=train_set_a[0].astype('float32')
+train_feat[50000:,:]=valid_set_a[0].astype('float32')
+train_labl[0:50000]=train_set_a[1].astype('int64')
+train_labl[50000:]=valid_set_a[1].astype('int64')#labels in pytorch must be int64
+
+
+test_feat=torch.from_numpy(test_set[0].astype('float32')).cuda() #Create two variables. We can use torch.from_numpy to wrap a numpy array to torch, then use .cuda to move to GPU. The good point of new versions of pytorch is that a torch tensor directly support automatic differentiation (previously we need to wrap it with variable)
+test_labl=torch.from_numpy(test_set[1].astype('int64')).cuda()
+
+'''
+Load into pytorch loader
+'''
+#pytorch loader can do many fancy things. We will see in the convolution tutorial. For the moment we just create a TensorDataset with our data. 
+mnist_dataset_train = torch.utils.data.TensorDataset(torch.from_numpy(train_feat).cuda(), torch.from_numpy(train_labl).cuda())
+#Now create a Loader with this data set. We could iterate over this and randonmly sample (shuffle=True) a batch.
+train_loader = torch.utils.data.DataLoader(mnist_dataset_train,batch_size=100,shuffle=True)
+
+'''
+Define functions
+'''
+#Define a function with the typical activations. This activations can be obtained from the nn.Module. 
+def activation(x,tip):
+	if tip=="sof":
+		f=nn.Softmax(dim=1)
+		return f(x)
+	elif tip=='relu':
+		f=nn.ReLU()
+		return f(x)
+	else:
+		print("activation function not present")
+		exit(-1)
+
+#forward operation. 
+def forward(x):
+	x2 = activation(torch.mm(x,w1)+b1,'relu')
+	y_pre_activation = torch.mm(x2,w2)+b2
+	return y_pre_activation 
+
+#inference. We can use the forward function, however we explicitly apply softmax here though it is not necessary to compute the argmax.
+#In the next tutorials I cover when, in my opinion, I like make this difference explictly. A reason could be if you want to directly return the softmax output.
+#This is because, in pytorch, the crossentropy loss applies this activation
+def inference(x):
+	x2 = activation(torch.mm(x,w1)+b1,'relu')
+	preactivation =activation( torch.mm(x2,w2)+b2,'sof')
+	return preactivation
+
+#loss
+CE = nn.CrossEntropyLoss() #this performs softmax plus cros-entropy
+def loss(t_,t):
+	return CE(t_,t)
+
+#define your layer dimension. We train a fully connected neural network of only one layer with 512 neurons
+l1=512
+l2=10
 input_d=784
+target_d=10
 
+#Create parameter of the network (shared variables in theano). Requires gradient is important (see apendix A). By default this attribute is set to false, unless is a nn.Parameter (we will cover this in other tutorials)
+w1=torch.from_numpy(numpy.random.normal(0,numpy.sqrt(2.0/float(l1)),(input_d,l1)).astype('float32')).cuda().requires_grad_()
+w2=torch.from_numpy(numpy.random.normal(0,numpy.sqrt(2.0/float(l2)),(l1,l2)).astype('float32')).cuda().requires_grad_()
+b1=torch.zeros((1,l1)).cuda().requires_grad_()
+b2=torch.zeros((1,l2)).cuda().requires_grad_()
+differentiated_params=[w1,w2,b1,b2] #our list with parameters to update
+epochs=20
 
-###############USE THE NN MODULE###################
-#The module is the same as in the previous example, however we have to incorporate a dropout operator. In this case I will use Bernouilli dropout. We use dropout with probability 0.5
-class Network(nn.Module): 
-	def __init__(self):
-		super(Network, self).__init__()
-		self.ReLU=nn.ReLU()#see functional, usefull if we do not need to register parameter
-		self.SoftMax=nn.Softmax()
-		self.CE = nn.CrossEntropyLoss() #this performs softmax plus cros-entropy
-		self.F1=nn.Linear(784,512)
-		self.FO=nn.Linear(512,10)
-
-		#dropout. We need a bernouilli distribution to generate a binary mask with probability given by drop probability and then cut out the post activation
-		self.drop_factor=0.5*torch.ones((512,)).cuda() #Important, required_grad can be False because the dropout operation has no parameter. We create two tensors here to preallocate memory, instaed of doing it during the forward. With, this, in the forward pass we only need to sample the mask.  We store this in gpu as .cuda() only moves parameters
-		#preallocate memory
-		self.drop_var=torch.zeros((512,)).cuda()
-
-	def forward(self,x):	
-		#sample the drop mask if we are in a training phase
-		if self.training: #you will understand the self.training when running the main loop
-			self.drop_var.data.bernoulli_(self.drop_factor)
-		x=self.ReLU(self.F1(x))
-		if self.training:#self.training is a boolean variable
-			x=x*self.drop_var #in train we apply dropout dropout
-		else:
-			x=x*self.drop_factor #in test we multiply by dropout probability
-		x=self.FO(x)
-		return x
-
-	def Loss(self,t_,t):
-		return self.CE(t_,t)
-
-
-#create instance
-
-myNet=Network()
-myNet.cuda() #move everything to gpu.
-
-#you can see how the drop variables does not appear in the parameter list. This is because they are not wrapped with nn.Parameter. It makes sense to do it in this way because dropout operator does not have any parameter
-for name,param in myNet.named_parameters():
-	print("Parameter name {} parameters in cuda {}".format(name,param.is_cuda))
-
-#you can check how calling to .cuda() moves everything to cuda.
-print("Dropout parameters are in cuda??. drop factor is in cuda {}   drop_var is in cuda {}".format(myNet.drop_factor.is_cuda,myNet.drop_var.is_cuda))
-
+#and now the main loop: forward, cost, backward, update, reset grads
 for e in range(epochs):
-	MC,ce=[0.0]*2
-	#now create and optimizer
-	optimizer=torch.optim.SGD(myNet.parameters(),lr=0.1,momentum=0.9)
-	myNet.train()#change your net to train mode. Basically, calling this changes the flag nn.Module.training to true. So when we are in train mode we apply dropout in the correct way
+	ce=0.0
 	for x,t in train_loader: #sample one batch
-		x,t=x.cuda(),t.cuda()
-		x=x.view(-1,784)
-		o=myNet.forward(x) #forward
-		cost=myNet.Loss(o,t) 
-		cost.backward() #this compute the gradient which respect to leaves. And this is the reason for required gradients True
-		optimizer.step()#step in gradient direction
-		optimizer.zero_grad()
-		ce+=cost.data
- 
-	myNet.eval()#change to test mode.This set the flag training to False.
-	with torch.no_grad():
-		for x,t in test_loader:
-			x,t=x.cuda(),t.cuda()
-			x=x.view(-1,784)
-			test_pred=myNet.forward(x)
-			index=torch.argmax(test_pred,1)#compute maximum
-			MC+=(index!=t).sum().float() #accumulate MC error
+		x,t=x,t.cuda()#move to gpu (when variables are one dimensional, such as t, the torch.dataloader move them to CPU, I do not know why). 
+		predict=forward(x) #forward
+		o=loss(predict,t) #compute loss
+		o.backward() #this compute the gradient which respect to leaves. And this is the reason for required gradients True.  It sould be note that o store the data but also the graph of the variables that have computed this value, in order to perform automatic differentiation. This is the key difference with TensorFlow, we do not need to compile a graph before predicting a value, we just do it online and the graph is created automatically when we perform the different operations.
+		ce+=o.data#store the ce for printing.
 
-	print("Cross entropy {:.3f} and Test error {:.3f}".format(ce/600.,100*MC/10000.))
+		for p in differentiated_params: #loop over params (this will be the update we pass to Theano function)
+			p.data=p.data-0.01*p.grad.data
+			p.grad.data.zero_() # and then reset the gradient
+			#Adding momentum should be straightforward. Update gradient and old momentum into weight. Update old momentum with the last update, then zero grad the gradients
 
+	test_pred=inference(test_feat)#compute the softmax from test data, though it is not necessary unless you want to have access to the class posterior probability assigned by the model
+	index=torch.argmax(test_pred,1).data#compute argument maximum
+	MC=(index!=test_labl).float().mean()*100 #compute MC error in %
+	print(("Epoch {} cross entropy {:.5f} and Test error {:.3f}").format(e,ce/600.,MC))
 
 ################## APPENDIX with explanation ##################
 '''
-In this example we can start understanding how dynamic graphs make things easier. In theano or in tensorflow you have to create two different graphs, one that evaluates dropout in test mode and one in training mode. I have to say that this can be done efficient, there is no need to create two different graphs, you can create only one graph and then make to different paths when dropout appears. I think that in Theano this was done with some if-like statement. I do not remember, I leaved theano more than one year ago. Anyway, in pytorch it can be done with the traditional if statement, and that facilitates our live. Moreover, you can still see some example through the internet where people create two graphs in TensorFlow, one for training and one for test. In pytorch is simpler. Because the graph is created online and does not need to be compile first you can change the pipeline of operations in the way you want at any moment. Imagine you want to do something different starting from iteration 100. In theano you will have to create a new graph that shares the variables with the initial one, and make the desired modifications. Here you can just use an if statement.
+-PyTorch have two ways of computing gradients. You can call the method grad(x,y) and it wil compute the gradient of x wrt y. 
+-Doing this can be tedious when having lots of parameters, as we need a backtrace of what has been done. The backward method compute the gradient of the caller which respect to all the leaves in the graph that requires grad. For example for adding adversarial noise the inputs should require grad. This is the easiest way, just compute the output given the input and call backward method.
+-Also. The key difference with Theano or Tensorflow is that the graph is created dynamically and not statically. This have powerfull advantages, as we will discuss in other tutorials. For instance we can have access to the output of any layer in a neural network directly, without having to create a graph that outputs this value. The good point of static graph is that once created it can be optimized. The good point of dynamic graph is that you can program in the same way you are used to.
+-Memory transfers in pytorch are not so harmfull as pytorch use a very efficient memory managment based on memory pools, to avoid malloc and realloc continously. However if we can avoid transfering data through the PCI that will be fine. This is why I store the dataset in the GPU once created, because it fits. We will cover this in more detail when talking about big datasets or transformations
+-If we access the .data attribute we recover only the data. I will explain this in the next tutorial.
+-https://github.com/jcjohnson/pytorch-examples You can find here why this kind of softwares are so powerfull. 
 '''
