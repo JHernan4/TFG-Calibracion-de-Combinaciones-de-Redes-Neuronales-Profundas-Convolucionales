@@ -2,7 +2,7 @@ CONV_cifar10.py
 
 ---cifar10: colección de imagenes usadas para el entrenamiento de rede neuronales. Uno de los datasets más utilizados
 procedimiento:
-	1. definir transformaciones. Para CIFAR10 en concreto se usa rellenar, recortar y normalizar
+	1. definir transformaciones. Para CIFAR10 en concreto se usa rellenar, recortar y normalizar (data augmentation)
 	2. crear conjuntos de datos (cifar10_train y cifar10_test)
 	3. finalmente cargar los datos del conjunto de datos, siguiendo distintas estrategias (procesamiento de datos secuencial o en paralelo, empleando distintos procesos/hilos)
 
