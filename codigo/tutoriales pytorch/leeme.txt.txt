@@ -1,2 +1,0 @@
-####Comando para exportar comando conda
-export PATH=/home/voz/anaconda3/bin:$PATH

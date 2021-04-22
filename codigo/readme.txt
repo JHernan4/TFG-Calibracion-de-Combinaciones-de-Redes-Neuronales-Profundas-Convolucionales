@@ -1,0 +1,8 @@
+###COMANDO EXPORTAR COMANDO CONDA
+export PATH=/home/voz/anaconda3/bin:$PATH
+
+###COMANDO ESTADO GPUs
+nvidia-smi
+
+###COMANDO PARA ELEGIR UNA GPU
+export CUDA_VISIBLE_DEVICES=0 (o 1)
