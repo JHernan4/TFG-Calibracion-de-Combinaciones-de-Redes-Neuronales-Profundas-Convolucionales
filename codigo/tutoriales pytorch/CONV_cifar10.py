@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#Author: Juan Maroñas Molano
+#Author: Juan Maroñas Molano 
 
 #Learning pytorch by training using CIFAR10
 #Sixth script we train convolutional neural network with data autmentation.
@@ -17,6 +17,9 @@
 #this version Date: November 2018-February 2019
 
 import torch #main module
+if not torch.cuda.is_available():
+	print("unable to run on GPU")
+	exit(-1)
 import torchvision #computer vision dataset module
 from torchvision import datasets,transforms
 from torch import nn #Keras users will now be really happy
@@ -24,22 +27,11 @@ from torch import nn #Keras users will now be really happy
 import numpy
 import os
 ''' Pytorch Data Loader'''
-#This package has several interesting transforms that can be used. This transforms are built on top of pillow. There are other libraries like
-#albumentations that are built on top of opencv and are a bit faster. However I like to use this one because it is made by the same developers as torch.
-#The good points of using pillow is that you can access all the transformations available.
-#The drawback is that these transformations are done in CPU, not in GPU.
-#This is overcomed by the fact that the transformations can be run in parallel in several threads, and that the memory transfer from CPU to GPU
-#is quite efficient due to the way PyTorch manage memory.
+#This package has several interesting transforms that can be used. This transforms are built on top of pillow. There are other libraries like albumentations that are built on top of opencv and are a bit faster. However I like to use this one because it is made by the same developers as torch. The good points of using pillow is that you can access all the transformations available. The drawback is that these transformations are done in CPU, not in GPU. This is overcomed by the fact that the transformations can be run in parallel in several threads, and that the memory transfer from CPU to GPU is quite efficient due to the way PyTorch manage memory.
 
-#Anyway, you can program your own GPU transformations in case your dataset fits in memory (check my github I made a modification of this package).
-#However, if you need complicated transformations or your data does not fit even in the CPU memory this is the best way to do it.
-#The pipeline is divided into three processes.
+#Anyway, you can program your own GPU transformations in case your dataset fits in memory (check my github I made a modification of this package). However, if you need complicated transformations or your data does not fit even in the CPU memory this is the best way to do it. The pipeline is divided into three processes.
 
-
-#First you should define your transformations.
-#For CIFAR10 we are going to pad, crop and normalize. This can be done in this way. Note that this not depend on the dataset, it is common.
-#In fact you can add your own transformations. I do not cover that in this tutorials because it is very well explained on the internet.
-#Basically you have to manage them in your dataset.
+#First you should define your transformations. For CIFAR10 we are going to pad, crop and normalize. This can be done in this way. Note that this not depend on the dataset, it is common. In fact you can add your own transformations. I do not cover that in this tutorials because it is very well explained on the internet. Basically you have to manage them in your dataset.
 
 cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
                    transforms.RandomHorizontalFlip(),
@@ -50,40 +42,30 @@ cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
 
+#Second, you create your dataset Dataset.  Cifar10 is also provided so we just use it. If you create your own dataset  you can decide how it is loaded to memory and which transformations do you want to apply. Check my tutorial on transfer learning. Basically you use a similar tool to torch.nn but designed for datasets.
 
-#Second, you create your dataset Dataset.  Cifar10 is also provided so we just use it.
-#If you create your own dataset  you can decide how it is loaded to memory and which transformations do you want to apply.
-#Check my tutorial on transfer learning. Basically you use a similar tool to torch.nn but designed for datasets.
-
-workers = (int)(os.popen('nproc').read())
+workers = (int)(os.popen('nproc').read()) 
 cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
 cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
 
-#Third your dataloader. You just pass any dataset you have created. For instance you can decide to shuffle all the dataset at each iteration
-#(that improves generalization) and also yo use several threads. In this case I will detect how many threads does my machine have and use them.
-#Each thread loads a batch of data in parallel to your main loop (your CNN training)
+#Third your dataloader. You just pass any dataset you have created. For instance you can decide to shuffle all the dataset at each iteration (that improves generalization) and also yo use several threads. In this case I will detect how many threads does my machine have and use them. Each thread loads a batch of data in parallel to your main loop (your CNN training)
 train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers)
 test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
 ###############USE THE NN MODULE###################
-#lets create a ResNet-18
+#lets create a ResNet-18 
 class ResNet18(nn.Module):
 	def __init__(self):
 		super(ResNet18, self).__init__()
-
-		#Pleas note that this code can be done efficient and clear just by using sequentials and for loops.
-        #However in this tutorial I want to make things as clear as possible and thus I use an attribute per layer.
-        #The pipeline of a Resnet-18 is convolution+bn and then 8 resnet blocks of two convolutions changing the feature map and
-        #using stride=2 instead of max pooling. This makes 2*16 + 1 convolution layer-> 17 layer. And the last fully connected layer 17+1=18 layers.
-        #Note that this same module can be used for cifar100 only changing the value of n_classes
+		#Pleas note that this code can be done efficient and clear just by using sequentials and for loops. However in this tutorial I want to make things as clear as possible and thus I use an attribute per layer. The pipeline of a Resnet-18 is convolution+bn and then 8 resnet blocks of two convolutions changing the feature map and using stride=2 instead of max pooling. This makes 2*16 + 1 convolution layer-> 17 layer. And the last fully connected layer 17+1=18 layers. Note that this same module can be used for cifar100 only changing the value of n_classes
 		self.ReLU=nn.ReLU()
 		self.SoftMax=nn.Softmax()
-		self.CE = nn.CrossEntropyLoss() #this performs softmax plus cros-entropy
+		self.CE = nn.CrossEntropyLoss() #this performs softmax plus cros-entropy		
 		self.n_classes=10
 
 		self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
 		self.bn1 = nn.BatchNorm2d(64)
-
+		
 		##########
 		#RESNET BLOCK 1
 		self.b1_conv1 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=False)
@@ -100,8 +82,7 @@ class ResNet18(nn.Module):
 		self.b2_bn1 = nn.BatchNorm2d(64)
 		self.b2_conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=False)
 		self.b2_bn2 = nn.BatchNorm2d(64)
-
-        #resnet connection
+		#resnet connection
 		#no readaptation is needed
 
 		##########
@@ -126,7 +107,7 @@ class ResNet18(nn.Module):
 
 		#resnet connection
 		#no readaptation is needed
-
+		
 		##########
 		#RESNET BLOCK 5
 		self.b5_conv1 = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1, bias=False)
@@ -226,7 +207,7 @@ class ResNet18(nn.Module):
 		self.train()
 		return self.operator(x)
 
-	def forward_test(self,x):
+	def forward_test(self,x): 
 		self.eval()
 		return self.operator(x)
 
@@ -235,7 +216,7 @@ class ResNet18(nn.Module):
 
 #create instance
 myNet=ResNet18()
- #move all the register parameters to gpus
+myNet.cuda() #move all the register parameters to  gpus
 
 #lets use a learning rate scheduler. I create my own learning rate scheduler. PyTorch provides several schedulers as well as optimizers. However, I do it in this way to show how it works. We basically create a pointer to a function that returns the actual learning rate.
 def lr_scheduler(epoch):
@@ -253,9 +234,10 @@ for e in range(350):
 	optimizer=torch.optim.SGD(myNet.parameters(),lr=scheduler(e),momentum=0.9)
 
 	for x,t in train_loader: #sample one batch
-		o=myNet.forward_train(x)
-		cost=myNet.Loss(o,t)
-		cost.backward()
+		x,t=x.cuda(),t.cuda()
+		o=myNet.forward_train(x) 
+		cost=myNet.Loss(o,t) 
+		cost.backward() 
 		optimizer.step()
 		optimizer.zero_grad()
 		ce+=cost.data
@@ -263,6 +245,7 @@ for e in range(350):
 	''' You must comment from here'''
 	with torch.no_grad():
 		for x,t in test_loader:
+			x,t=x.cuda(),t.cuda()
 			test_pred=myNet.forward_test(x)
 			index=torch.argmax(test_pred,1)#compute maximum
 			MC+=(index!=t).sum().float() #accumulate MC error
@@ -272,7 +255,7 @@ for e in range(350):
 	'''
 	for x,t in test_loader:
 		x,t=x.cuda(),t.cuda()
-		o=myNet.forward_test(x)
+		o=myNet.forward_test(x) 
 		cost=myNet.Loss(o,t)
 		ce_test+=cost.data #comment this and uncomment the one without the .data, you will see how the memory explotes
 		#ce_test+=cost # you run out of memory
