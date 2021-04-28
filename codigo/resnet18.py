@@ -1,4 +1,4 @@
-from resnet18 import *
+from resnet import *
 import torch
 if not torch.cuda.is_available():
 	print("unable to run on GPU")
