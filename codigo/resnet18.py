@@ -19,7 +19,7 @@ def lr_scheduler(epoch):
 
 if __name__ == '__main__':
     #1. Definimos las transformaciones del dataset (CIFAR10)
-
+    
     cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
                    transforms.RandomHorizontalFlip(),
                    transforms.ToTensor(),
@@ -42,9 +42,12 @@ if __name__ == '__main__':
     nn = resnet18()
 
     scheduler=lr_scheduler
-    for e in range(10):
-        optimizer=torch.optim.SGD(nn.parameters(),lr=scheduler(e),momentum=0.9)
-        for x,t in train_loader: #sample one batch
+    for e in range(350):
+	    ce_test,MC,ce=[0.0]*3
+	    #now create and optimizer
+	    optimizer=torch.optim.SGD(myNet.parameters(),lr=scheduler(e),momentum=0.9)
+
+	    for x,t in train_loader: #sample one batch
 		    x,t=x.cuda(),t.cuda()
 		    o=nn.forward_train(x) 
 		    cost=nn.Loss(o,t) 
@@ -52,12 +55,13 @@ if __name__ == '__main__':
 		    optimizer.step()
 		    optimizer.zero_grad()
 		    ce+=cost.data
-        
-        with torch.no_grad():
+
+	    ''' You must comment from here'''
+	    with torch.no_grad():
 		    for x,t in test_loader:
 			    x,t=x.cuda(),t.cuda()
 			    test_pred=myNet.forward_test(x)
 			    index=torch.argmax(test_pred,1) #compute maximum
 			    MC+=(index!=t).sum().float() #accumulate MC error
-        
-        print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
+	
+	print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
