@@ -247,7 +247,7 @@ for e in range(350):
 		for x,t in test_loader:
 			x,t=x.cuda(),t.cuda()
 			test_pred=myNet.forward_test(x)
-			index=torch.argmax(test_pred,1)#compute maximum
+			index=torch.argmax(test_pred,1) #compute maximum
 			MC+=(index!=t).sum().float() #accumulate MC error
 	'''to here, to check how can you run out of memory'''
 
