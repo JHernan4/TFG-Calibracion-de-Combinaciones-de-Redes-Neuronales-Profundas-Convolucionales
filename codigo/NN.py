@@ -53,7 +53,7 @@ def evaluate(model, dataset_loader, optimizer, train=False):
         score, loss = model(x, target)#realizamos el forward
         _, pred_label = torch.max(score.data, 1)#pasamos de one hot a número
         correct_cnt += (pred_label == target.data).sum()#calculamos el número de etiquetas correctas
-        ave_loss += loss.data[0]#sumamos el resultado de la función de pérdida para mostrar después
+        ave_loss += loss.data #sumamos el resultado de la función de pérdida para mostrar después
         if train:
             loss.backward()#Calcula los gradientes y los propaga 
             optimizer.step()#adaptamos los pesos con los gradientes propagados
