@@ -12,7 +12,7 @@ import torch.optim as optim
 #lo primero que haremos será cargar el dataset. En este caso utilizaremos MNIST que contiene 
 #60000 imágenes para entrenamiento y 10000 para test con digitos entre 0 y 9 (cada digito de 28x28 px en escala de grises)
 
-torch.manual.seed(123) #semilla
+torch.manual_seed(123) #semilla
 trans = transforms.Compose([transforms.ToTensor()]) #Transformador para el dataset
 
 train_set = dset.MNIST(root='/tmp/', train=True, transform=trans, download=True)
