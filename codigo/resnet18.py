@@ -42,7 +42,7 @@ if __name__ == '__main__':
     nn = resnet18()
 
     scheduler=lr_scheduler
-    for e in range(350):
+    for e in range(5):
 	    ce_test,MC,ce=[0.0]*3
 	    #now create and optimizer
 	    optimizer=torch.optim.SGD(myNet.parameters(),lr=scheduler(e),momentum=0.9)
@@ -64,4 +64,4 @@ if __name__ == '__main__':
 			    index=torch.argmax(test_pred,1) #compute maximum
 			    MC+=(index!=t).sum().float() #accumulate MC error
 	
-	print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
+	    print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
