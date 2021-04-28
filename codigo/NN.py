@@ -1,3 +1,5 @@
+#primera aproximacion de entrenamiento de redes neuronales con pytorch
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,26 +14,18 @@ CUDA = torch.cuda.is_available()
 class NET(nn.Module):
     def __init__(self):
         super(NET, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
-        self.fc1 = nn.Linear(64*12*12, 128)
-        self.fc2 = nn.Linear(128, 10)#capa de salida
+        self.fc1 = nn.Linear(28*28, 256)#capa oculta
+        self.fc2 = nn.Linear(256, 10)#capa de salida
         self.loss_criterion = nn.CrossEntropyLoss()#Función de pérdida
         
     def forward(self, x, target):
-        x = x.view(-1, 1, 28, 28)#transforma las imágenes a tamaño (n, 1, 28, 28)
-        x = F.relu(self.conv1(x))
-        # la salida de conv1 es 32x26x26
-        x = F.max_pool2d(F.relu(self.conv2(x)), 2)#El 2 es el stride
-        # la salida de conv2 es 64x24x24, la salida de max_pool es 64x12x12
-        x = x.view(-1, 64*12*12)#transformamos la salida en un tensor de tamaño (n, 9216)
+        x = x.view(-1, 28*28)#transforma las imágenes de tamaño (n, 28, 28) a (n, 784)
         x = F.relu(self.fc1(x))#Función de activación relu en la salida de la capa oculta
         x = F.softmax(self.fc2(x), dim=1)#Función de activación softmax en la salida de la capa oculta
         return x
         
 
 class NN():
-    """docstring for NN"""
     def __init__(self):
         self.model = NET()
         if CUDA:
@@ -112,23 +106,25 @@ class NN():
 
 
 if __name__ == "__main__":
-    torch.manual_seed(123) #fijamos la semilla
+    torch.manual_seed(123) #fijarmos la semilla
     epochs = 10
 
     trans = transforms.Compose([transforms.ToTensor()]) #Transformador para el dataset
-    root="../data"
+    root="/tmp/"
     train_set = dset.MNIST(root=root, train=True, transform=trans, download=True)
     test_set = dset.MNIST(root=root, train=False, transform=trans)
 
     batch_size = 128
     train_loader = torch.utils.data.DataLoader(
-                     dataset=train_set,
-                     batch_size=batch_size,
-                     shuffle=True)
+                    dataset=train_set,
+                    batch_size=batch_size,
+                    shuffle=True,
+                    pin_memory=CUDA)
     test_loader = torch.utils.data.DataLoader(
                     dataset=test_set,
                     batch_size=batch_size,
-                    shuffle=False)
+                    shuffle=False,
+                    pin_memory=CUDA)
 
     print ('Trainning batch number: {}'.format(len(train_loader)))
     print ('Testing batch number: {}'.format(len(test_loader)))
