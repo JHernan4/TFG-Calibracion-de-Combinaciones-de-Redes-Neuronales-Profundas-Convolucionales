@@ -1,11 +1,9 @@
 from resnet18 import *
-import torch #main module
 if not torch.cuda.is_available():
 	print("unable to run on GPU")
 	exit(-1)
 import torchvision #computer vision dataset module
 from torchvision import datasets,transforms
-from torch import nn #Keras users will now be really happy
 
 import numpy
 import os
