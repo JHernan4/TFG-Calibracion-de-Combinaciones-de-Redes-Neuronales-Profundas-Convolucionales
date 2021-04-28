@@ -49,7 +49,7 @@ class NN():
             _, pred_label = torch.max(score.data, 1)#pasamos de one hot a número
             correct_cnt_epch = (pred_label == target.data).sum()#calculamos el número de etiquetas correctas
             correct_cnt += correct_cnt_epch
-            ave_loss += loss.data[0]#sumamos el resultado de la función de pérdida para mostrar después
+            ave_loss += loss.data#sumamos el resultado de la función de pérdida para mostrar después
             if train:
                 loss.backward()#Calcula los gradientes y los propaga 
                 self.optimizer.step()#adaptamos los pesos con los gradientes propagados
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     epochs = 10
 
     trans = transforms.Compose([transforms.ToTensor()]) #Transformador para el dataset
-    root="./data"
+    root="/tmp/"
     train_set = dset.MNIST(root=root, train=True, transform=trans, download=True)
     test_set = dset.MNIST(root=root, train=False, transform=trans)
 
