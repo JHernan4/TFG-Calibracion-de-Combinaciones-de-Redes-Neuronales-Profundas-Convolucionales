@@ -4,9 +4,30 @@ if not torch.cuda.is_available():
 	exit(-1)
 import torchvision #computer vision dataset module
 from torchvision import datasets,transforms
+from torch import nn
 
 import numpy
 import os
+
+class ResNet18(nn.module):
+
+	def __init__(self):
+		super(ResNet18, self).__init__()
+		self.ReLU=nn.ReLU()
+		self.SoftMax=nn.Softmax()
+		self.CE = nn.CrossEntropyLoss()
+		self.n_classes = 10
+
+	def forward_train(self,x):
+		self.train()
+		return self.operator(x)
+
+	def forward_test(self,x):
+		self.eval()
+		return self.operator(x)
+
+	def Loss(self,t_,t):
+		return self.CE(t_,t)
 
 def lr_scheduler(epoch):
 	if epoch < 150:
@@ -39,7 +60,8 @@ if __name__ == '__main__':
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
     #4. Creamos el modelo (resnet18)
-    nn = torch.hub.load('pytorch/vision:v0.9.0', 'resnet18', pretrained=False)
+    nn = ResNet18()
+	nn = nn.cuda()
 
     scheduler=lr_scheduler
     for e in range(5):
