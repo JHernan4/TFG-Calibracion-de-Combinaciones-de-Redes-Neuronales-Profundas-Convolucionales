@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#Author: Juan Maroñas Molano 
+#Author: Juan Maroñas Molano
 
 #Learning pytorch by training using CIFAR10
 #Sixth script we train convolutional neural network with data autmentation.
@@ -44,7 +44,7 @@ cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
 
 #Second, you create your dataset Dataset.  Cifar10 is also provided so we just use it. If you create your own dataset  you can decide how it is loaded to memory and which transformations do you want to apply. Check my tutorial on transfer learning. Basically you use a similar tool to torch.nn but designed for datasets.
 
-workers = (int)(os.popen('nproc').read()) 
+workers = (int)(os.popen('nproc').read())
 cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
 cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
 
@@ -53,19 +53,19 @@ train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=
 test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
 ###############USE THE NN MODULE###################
-#lets create a ResNet-18 
+#lets create a ResNet-18
 class ResNet18(nn.Module):
 	def __init__(self):
 		super(ResNet18, self).__init__()
 		#Pleas note that this code can be done efficient and clear just by using sequentials and for loops. However in this tutorial I want to make things as clear as possible and thus I use an attribute per layer. The pipeline of a Resnet-18 is convolution+bn and then 8 resnet blocks of two convolutions changing the feature map and using stride=2 instead of max pooling. This makes 2*16 + 1 convolution layer-> 17 layer. And the last fully connected layer 17+1=18 layers. Note that this same module can be used for cifar100 only changing the value of n_classes
 		self.ReLU=nn.ReLU()
 		self.SoftMax=nn.Softmax()
-		self.CE = nn.CrossEntropyLoss() #this performs softmax plus cros-entropy		
+		self.CE = nn.CrossEntropyLoss() #this performs softmax plus cros-entropy
 		self.n_classes=10
 
 		self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
 		self.bn1 = nn.BatchNorm2d(64)
-		
+
 		##########
 		#RESNET BLOCK 1
 		self.b1_conv1 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=False)
@@ -107,7 +107,7 @@ class ResNet18(nn.Module):
 
 		#resnet connection
 		#no readaptation is needed
-		
+
 		##########
 		#RESNET BLOCK 5
 		self.b5_conv1 = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1, bias=False)
@@ -207,7 +207,7 @@ class ResNet18(nn.Module):
 		self.train()
 		return self.operator(x)
 
-	def forward_test(self,x): 
+	def forward_test(self,x):
 		self.eval()
 		return self.operator(x)
 
@@ -235,9 +235,9 @@ for e in range(350):
 
 	for x,t in train_loader: #sample one batch
 		x,t=x.cuda(),t.cuda()
-		o=myNet.forward_train(x) 
-		cost=myNet.Loss(o,t) 
-		cost.backward() 
+		o=myNet.forward_train(x)
+		cost=myNet.Loss(o,t)
+		cost.backward()
 		optimizer.step()
 		optimizer.zero_grad()
 		ce+=cost.data
@@ -255,7 +255,7 @@ for e in range(350):
 	'''
 	for x,t in test_loader:
 		x,t=x.cuda(),t.cuda()
-		o=myNet.forward_test(x) 
+		o=myNet.forward_test(x)
 		cost=myNet.Loss(o,t)
 		ce_test+=cost.data #comment this and uncomment the one without the .data, you will see how the memory explotes
 		#ce_test+=cost # you run out of memory

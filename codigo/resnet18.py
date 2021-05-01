@@ -44,25 +44,41 @@ if __name__ == '__main__':
 	train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers)
 	test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
-
-	scheduler=lr_scheduler
-	for e in range(5):
-		ce_test,MC,ce=[0.0]*3
-		for x,t in train_loader: #sample one batch
-			x,t=x.cuda(),t.cuda()
-			o=resnet18.forward(x)
-			cost=nn.CrossEntropyLoss(o,t)
-			cost.backward()
-			optimizer.step()
-			optimizer.zero_grad()
-			ce+=cost.data
-
-		''' You must comment from here'''
-		with torch.no_grad():
-			for x,t in test_loader:
+	loss = nn.CrossEntropyLoss()
+	seeds = []
+	losses = []
+	testErrors = []
+	#generamos 5 semillas aleatorias
+	for i in range(5):
+		seed.append(np.random.randint(150))
+	#para cada semilla realizamos el entrenamiento y clasificacion del modelo
+	for seed in seeds:
+		torch.cuda.manual_seed(123)
+		scheduler=lr_scheduler
+		for e in range(350):
+			ce_test,MC,ce=[0.0]*3
+			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
+			for x,t in train_loader: #sample one batch
 				x,t=x.cuda(),t.cuda()
-				test_pred=resnet18.forward(x)
-				index=torch.argmax(test_pred,1) #compute maximum
-				MC+=(index!=t).sum().float() #accumulate MC error
+				o=resnet18.forward(x)
+				cost=loss(o,t)
+				cost.backward()
+				optimizer.step()
+				optimizer.zero_grad()
+				ce+=cost.data
 
-		print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
+				''' You must comment from here'''
+				with torch.no_grad():
+					for x,t in test_loader:
+						x,t=x.cuda(),t.cuda()
+						test_pred=resnet18.forward(x)
+						index=torch.argmax(test_pred,1) #compute maximum
+						MC+=(index!=t).sum().float() #accumulate MC error
+
+				print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
+		losses.append(ce/500.)
+		testErrors.append(100*MC/10000.)
+
+		print(">>>> Resultados: ")
+		for i in range(5):
+			print("\tModelo {}: cross entropy {:.5f} and Test error {:.3f}".format(i+1, losses[i], testErrors[i]))
