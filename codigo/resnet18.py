@@ -50,7 +50,7 @@ if __name__ == '__main__':
 	testErrors = []
 	#generamos 5 semillas aleatorias
 	for i in range(5):
-		seed.append(np.random.randint(150))
+		seeds.append(np.random.randint(150))
 	#para cada semilla realizamos el entrenamiento y clasificacion del modelo
 	for seed in seeds:
 		torch.cuda.manual_seed(123)
