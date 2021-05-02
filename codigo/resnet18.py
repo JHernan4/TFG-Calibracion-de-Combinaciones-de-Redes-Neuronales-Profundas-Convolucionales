@@ -21,10 +21,6 @@ def lr_scheduler(epoch):
 
 if __name__ == '__main__':
 
-	#definimos el modelo de red neuronal y lo movemos a la GPU
-	resnet18 = models.resnet18(True)
-	resnet18.cuda()
-
 	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
 	                   transforms.RandomHorizontalFlip(),
 	                   transforms.ToTensor(),
@@ -48,11 +44,15 @@ if __name__ == '__main__':
 	seeds = []
 	losses = []
 	testErrors = []
+	models = []
 	#generamos 5 semillas aleatorias
 	for i in range(5):
 		seeds.append(np.random.randint(150))
+		models.append(models.resnet18(False))
 	#para cada semilla realizamos el entrenamiento y clasificacion del modelo
-	for seed in seeds:
+	for seed,model in zip(seeds, models):
+		resnet18 = model
+		resnet18.cuda()
 		torch.cuda.manual_seed(123)
 		scheduler=lr_scheduler
 		for e in range(350):
