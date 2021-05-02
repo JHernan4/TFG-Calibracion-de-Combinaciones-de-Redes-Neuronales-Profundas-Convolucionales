@@ -75,10 +75,12 @@ if __name__ == '__main__':
 						index=torch.argmax(test_pred,1) #compute maximum
 						MC+=(index!=t).sum().float() #accumulate MC error
 
-				print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
+			print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
+
 		losses.append(ce/500.)
 		testErrors.append(100*MC/10000.)
-
-		print(">>>> Resultados: ")
-		for i in range(5):
-			print("\tModelo {}: cross entropy {:.5f} and Test error {:.3f}".format(i+1, losses[i], testErrors[i]))
+		print("--------------------------------------------------------")
+		print("--------------------------------------------------------")
+	print(">>>> Resultados: ")
+	for i in range(len(seeds)):
+		print("\tModelo {}: cross entropy {:.5f} and Test error {:.3f}".format(i+1, losses[i], testErrors[i]))
