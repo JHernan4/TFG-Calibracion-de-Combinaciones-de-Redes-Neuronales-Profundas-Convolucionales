@@ -59,7 +59,7 @@ if __name__ == '__main__':
 		for x,t in train_loader: #sample one batch
 			x,t=x.cuda(),t.cuda()
 			resnet18.train()
-			o=resnet18.forward()
+			o=resnet18.forward(x)
 			cost=loss(o,t)
 			cost.backward()
 			optimizer.step()
