@@ -7,7 +7,7 @@ import torchvision.models as models
 from torchvision import datasets,transforms
 from torch import nn
 
-import numpy
+import numpy as np
 import os
 
 
@@ -20,7 +20,7 @@ def lr_scheduler(epoch):
 		return 0.001
 
 if __name__ == '__main__':
-
+	np.random.seed(123)
 	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
 	                   transforms.RandomHorizontalFlip(),
 	                   transforms.ToTensor(),
@@ -53,7 +53,7 @@ if __name__ == '__main__':
 	for seed,modelo in zip(seeds, modelos):
 		resnet18 = modelo
 		resnet18.cuda()
-		torch.cuda.manual_seed(123)
+		torch.cuda.manual_seed(seed)
 		scheduler=lr_scheduler
 		for e in range(350):
 			ce_test,MC,ce=[0.0]*3
@@ -83,6 +83,13 @@ if __name__ == '__main__':
 		testErrors.append(100*MC/10000.)
 		print("--------------------------------------------------------")
 		print("--------------------------------------------------------")
+
+	avgCE = 0.0
+	avgTestError = 0.0
 	print(">>>> Resultados: ")
 	for i in range(len(seeds)):
 		print("\tModelo {}: cross entropy {:.5f} and Test error {:.3f}".format(i+1, losses[i], testErrors[i]))
+		avgCE+=losses[i]
+		avgTestError+=testErrors[i]
+
+	print("Valores medios finales: cross entropy {:.5f} and Test error {:.3f}".format(avgCE, avgTestError))
