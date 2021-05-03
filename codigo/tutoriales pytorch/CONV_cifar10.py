@@ -217,7 +217,7 @@ class ResNet18(nn.Module):
 #create instance
 myNet=ResNet18()
 myNet.cuda() #move all the register parameters to  gpus
-
+print(myNet)
 #lets use a learning rate scheduler. I create my own learning rate scheduler. PyTorch provides several schedulers as well as optimizers. However, I do it in this way to show how it works. We basically create a pointer to a function that returns the actual learning rate.
 def lr_scheduler(epoch):
 	if epoch < 150:
