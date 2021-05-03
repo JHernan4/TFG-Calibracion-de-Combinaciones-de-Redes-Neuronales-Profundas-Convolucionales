@@ -20,7 +20,11 @@ def lr_scheduler(epoch):
 		return 0.001
 
 if __name__ == '__main__':
+
+	#establecemos semilla inicial para la generacion de las semillas torch
 	np.random.seed(123)
+
+	#creacion de las transformaciones que aplicaremos sobre el dataset cifar10
 	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
 	                   transforms.RandomHorizontalFlip(),
 	                   transforms.ToTensor(),
@@ -30,13 +34,12 @@ if __name__ == '__main__':
 	                   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
 
-	#Second, you create your dataset Dataset.  Cifar10 is also provided so we just use it. If you create your own dataset  you can decide how it is loaded to memory and which transformations do you want to apply. Check my tutorial on transfer learning. Basically you use a similar tool to torch.nn but designed for datasets.
-
+	#cargamos el dataset CIFAR10
 	workers = (int)(os.popen('nproc').read())
 	cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
 	cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
 
-	#Third your dataloader. You just pass any dataset you have created. For instance you can decide to shuffle all the dataset at each iteration (that improves generalization) and also yo use several threads. In this case I will detect how many threads does my machine have and use them. Each thread loads a batch of data in parallel to your main loop (your CNN training)
+	#creamos los dataloaders para iterar el conjunto de datos
 	train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers)
 	test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
@@ -58,7 +61,7 @@ if __name__ == '__main__':
 		for e in range(350):
 			ce_test,MC,ce=[0.0]*3
 			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
-			for x,t in train_loader: #sample one batch
+			for x,t in train_loader:
 				x,t=x.cuda(),t.cuda()
 				resnet18.train()
 				o=resnet18.forward(x)
@@ -68,14 +71,13 @@ if __name__ == '__main__':
 				optimizer.zero_grad()
 				ce+=cost.data
 
-				''' You must comment from here'''
-				with torch.no_grad():
-					for x,t in test_loader:
-						x,t=x.cuda(),t.cuda()
-						resnet18.test()
-						test_pred=resnet18.forward(x)
-						index=torch.argmax(test_pred,1) #compute maximum
-						MC+=(index!=t).sum().float() #accumulate MC error
+			with torch.no_grad():
+				for x,t in test_loader:
+					x,t=x.cuda(),t.cuda()
+					resnet18.test()
+					test_pred=resnet18.forward(x)
+					index=torch.argmax(test_pred,1) #compute maximum
+					MC+=(index!=t).sum().float() #accumulate MC error
 
 			print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
 
