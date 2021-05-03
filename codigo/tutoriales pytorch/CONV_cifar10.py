@@ -34,12 +34,12 @@ import os
 #First you should define your transformations. For CIFAR10 we are going to pad, crop and normalize. This can be done in this way. Note that this not depend on the dataset, it is common. In fact you can add your own transformations. I do not cover that in this tutorials because it is very well explained on the internet. Basically you have to manage them in your dataset.
 
 cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
-                   transforms.RandomHorizontalFlip(),
-                   transforms.ToTensor(),
-                   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))]) #transforms are different for train and test
+				   transforms.RandomHorizontalFlip(),
+				   transforms.ToTensor(),
+				   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))]) #transforms are different for train and test
 
 cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
-                   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+				   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
 
 #Second, you create your dataset Dataset.  Cifar10 is also provided so we just use it. If you create your own dataset  you can decide how it is loaded to memory and which transformations do you want to apply. Check my tutorial on transfer learning. Basically you use a similar tool to torch.nn but designed for datasets.
