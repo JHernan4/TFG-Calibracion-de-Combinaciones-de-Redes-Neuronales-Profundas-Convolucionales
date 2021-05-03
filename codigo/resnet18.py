@@ -44,14 +44,14 @@ if __name__ == '__main__':
 	seeds = []
 	losses = []
 	testErrors = []
-	models = []
+	modelos = []
 	#generamos 5 semillas aleatorias
 	for i in range(5):
 		seeds.append(np.random.randint(150))
-		models.append(models.resnet18(False))
+		modelos.append(models.resnet18(False))
 	#para cada semilla realizamos el entrenamiento y clasificacion del modelo
-	for seed,model in zip(seeds, models):
-		resnet18 = model
+	for seed,modelo in zip(seeds, modelos):
+		resnet18 = modelo
 		resnet18.cuda()
 		torch.cuda.manual_seed(123)
 		scheduler=lr_scheduler
@@ -60,6 +60,7 @@ if __name__ == '__main__':
 			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
 			for x,t in train_loader: #sample one batch
 				x,t=x.cuda(),t.cuda()
+				resnet18.train()
 				o=resnet18.forward(x)
 				cost=loss(o,t)
 				cost.backward()
@@ -71,6 +72,7 @@ if __name__ == '__main__':
 				with torch.no_grad():
 					for x,t in test_loader:
 						x,t=x.cuda(),t.cuda()
+						resnet18.test()
 						test_pred=resnet18.forward(x)
 						index=torch.argmax(test_pred,1) #compute maximum
 						MC+=(index!=t).sum().float() #accumulate MC error
