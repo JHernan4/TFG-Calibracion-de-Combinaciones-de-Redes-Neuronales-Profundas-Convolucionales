@@ -48,43 +48,38 @@ if __name__ == '__main__':
 	losses = []
 	testErrors = []
 	modelos = []
-	#generamos 5 semillas aleatorias y creamos un modelo para cada semilla
-	for i in range(5):
-		seeds.append(np.random.randint(150))
-		modelos.append(models.resnet18(False))
 	#para cada semilla realizamos el entrenamiento y clasificacion del modelo
-	for seed,modelo in zip(seeds, modelos):
-		resnet18 = modelo
-		resnet18.cuda()
-		torch.cuda.manual_seed(seed)
-		scheduler=lr_scheduler
-		for e in range(350):
-			ce_test,MC,ce=[0.0]*3
-			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
-			for x,t in train_loader:
+	resnet18 = models.resnet18(False)
+    resnet18.SoftMax=nn.Softmax()
+	resnet18.cuda()
+	scheduler=lr_scheduler
+	for e in range(350):
+		ce_test,MC,ce=[0.0]*3
+		optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
+		for x,t in train_loader:
+			x,t=x.cuda(),t.cuda()
+			resnet18.train()
+			o=resnet18.forward(x)
+			cost=loss(o,t)
+			cost.backward()
+			optimizer.step()
+			optimizer.zero_grad()
+			ce+=cost.data
+
+		with torch.no_grad():
+			for x,t in test_loader:
 				x,t=x.cuda(),t.cuda()
-				resnet18.train()
-				o=resnet18.forward(x)
-				cost=loss(o,t)
-				cost.backward()
-				optimizer.step()
-				optimizer.zero_grad()
-				ce+=cost.data
+				resnet18.eval()
+				test_pred=resnet18.forward(x)
+				index=torch.argmax(test_pred,1) #compute maximum
+				MC+=(index!=t).sum().float() #accumulate MC error
 
-			with torch.no_grad():
-				for x,t in test_loader:
-					x,t=x.cuda(),t.cuda()
-					resnet18.eval()
-					test_pred=resnet18.forward(x)
-					index=torch.argmax(test_pred,1) #compute maximum
-					MC+=(index!=t).sum().float() #accumulate MC error
+		print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
 
-			print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
-
-		losses.append(ce/500.)
-		testErrors.append(100*MC/10000.)
-		print("--------------------------------------------------------")
-		print("--------------------------------------------------------")
+	losses.append(ce/500.)
+	testErrors.append(100*MC/10000.)
+	print("--------------------------------------------------------")
+	print("--------------------------------------------------------")
 
 	avgCE = 0.0
 	avgTestError = 0.0
