@@ -23,6 +23,7 @@ def lr_scheduler(epoch):
 if __name__ == '__main__':
 
 	nEpocas = 100
+	nModelos = 5
 	scheduler=lr_scheduler
 	print("==> Preparing data...")
 	#creacion de las transformaciones que aplicaremos sobre el dataset cifar10
@@ -46,32 +47,55 @@ if __name__ == '__main__':
 
 	loss = nn.CrossEntropyLoss()
 	print("==> Building model...")
-	resnet18 = ResNet18()
-	resnet18.cuda()
-	torch.manual_seed(0)
-	for e in range(1):
-		ce = 0.0
-		optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
-		for x,t in train_loader:
-			print(x)
-			x,t=x.cuda(),t.cuda()
-			resnet18.train()
-			o=resnet18.forward(x)
-			cost=loss(o,t)
-			cost.backward()
-			optimizer.step()
-			optimizer.zero_grad()
-			ce+=cost.data
-
-		with torch.no_grad():
-			correct = 0
-			total = 0
-			for x,t in test_loader:
+	seeds = []
+	modelos = []
+	accuracies = []
+	crossEntropies = []
+	for i in range(nModelos):
+		seeds.append(np.random.randint(150))
+		modelos.append(ResNet18())
+	for seed, modelo in zip(seeds, modelos):
+		print("Semilla: {}".format(seed))
+		torch.manual_seed(seed)
+		resnet18 = modelo
+		resnet18.cuda()
+		for e in range(nEpocas):
+			ce = 0.0
+			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
+			for x,t in train_loader:
 				x,t=x.cuda(),t.cuda()
-				resnet18.eval()
-				test_pred=resnet18.forward(x)
-				index=torch.argmax(test_pred,1)
-				total+=t.size(0)
-				correct+=(index==t).sum().float()
+				resnet18.train()
+				o=resnet18.forward(x)
+				cost=loss(o,t)
+				cost.backward()
+				optimizer.step()
+				optimizer.zero_grad()
+				ce+=cost.data
+
+			with torch.no_grad():
+				correct = 0
+				total = 0
+				for x,t in test_loader:
+					x,t=x.cuda(),t.cuda()
+					resnet18.eval()
+					test_pred=resnet18.forward(x)
+					index=torch.argmax(test_pred,1)
+					total+=t.size(0)
+					correct+=(index==t).sum().float()
 		
-		print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
+			print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
+		
+		crossEntropies.append(ce/500)
+		accuracies.append(100*correct/total)
+		print("---------------------------------------------------")
+		print("---------------------------------------------------")
+
+	avgCE = 0.0
+	avgACC = 0.0
+	print(">>>Resultados: ")
+	for i in range(len(seeds)):
+		print("Modelo {} (semilla {}): cross entropy {:.5f} and accuracy {:.3f}".format(i+1, seeds[i], crossEntropies[i], accuracies[i]))
+		avgCE+=crossEntropies[i]/len(crossEntropies)
+		avgACC+=accuracies[i]/len(accuracies)
+	
+	print(">>>Valores medios finales: cross entropy {:.5f} and accuracy {:.3f}".format(avgCE, avgACC))
