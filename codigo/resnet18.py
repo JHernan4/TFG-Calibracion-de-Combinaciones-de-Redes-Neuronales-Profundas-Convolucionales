@@ -6,6 +6,7 @@ import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
 from torch import nn
+from models import ResNet18
 
 import numpy as np
 import os
@@ -21,9 +22,8 @@ def lr_scheduler(epoch):
 
 if __name__ == '__main__':
 
-	#establecemos semilla inicial para la generacion de las semillas torch
-	np.random.seed(123)
-
+	nEpocas = 100
+	scheduler=lr_scheduler
 	#creacion de las transformaciones que aplicaremos sobre el dataset cifar10
 	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
 	                   transforms.RandomHorizontalFlip(),
@@ -44,55 +44,32 @@ if __name__ == '__main__':
 	test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
 	loss = nn.CrossEntropyLoss()
-	seeds = []
-	losses = []
-	accuracies = []
-	modelos = []
 	#generamos 5 semillas aleatorias y creamos un modelo para cada semilla
-	for i in range(5):
-		seeds.append(np.random.randint(150))
-		modelos.append(models.resnet18(False))
-	#para cada semilla realizamos el entrenamiento y clasificacion del modelo
-	for seed,modelo in zip(seeds, modelos):
-		resnet18 = modelo
-		resnet18.cuda()
-		torch.cuda.manual_seed(seed)
-		scheduler=lr_scheduler
-		for e in range(350):
-			ce_test,MC,ce=[0.0]*3
-			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
-			for x,t in train_loader:
+	resnet18 = ResNet18()
+	resnet18.cuda()
+
+	for e in range(nEpocas):
+		ce = [0.0]*3
+		optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
+		for x,t in train_loader:
+			x,t=x.cuda(),t.cuda()
+			resnet18.train()
+			o=resnet18.forward(x)
+			cost=loss(o,t)
+			cost.backward()
+			optimizer.step()
+			optimizer.zero_grad()
+			ce+=cost.data
+
+		with torch.no_grad():
+			correct = 0
+			total = 0
+			for x,t in test_loader:
 				x,t=x.cuda(),t.cuda()
-				resnet18.train()
-				o=resnet18.forward(x)
-				cost=loss(o,t)
-				cost.backward()
-				optimizer.step()
-				optimizer.zero_grad()
-				ce+=cost.data
-
-			with torch.no_grad():
-				for x,t in test_loader:
-					x,t=x.cuda(),t.cuda()
-					resnet18.eval()
-					test_pred=resnet18.forward(x)
-					index=torch.argmax(test_pred,1) #compute maximum
-					total+=t.size(0)
-					correct+=(index==t).sum().float()
-
-			print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
-
-		losses.append(ce/500.)
-		accuracies.append(100*correct/total)
-		print("--------------------------------------------------------")
-		print("--------------------------------------------------------")
-
-	avgCE = 0.0
-	avgACC = 0.0
-	print(">>>> Resultados: ")
-	for i in range(len(seeds)):
-		print("\tModelo {} (semilla {}): cross entropy {:.5f} and accuracy {:.3f}".format(i+1, seeds[i], losses[i], accuracies[i]))
-		avgCE+=losses[i]/len(losses)
-		avgACC+=accuracies[i]/len(accuracies)
-
-	print("Valores medios finales: cross entropy {:.5f} and Test error {:.3f}".format(avgCE, avgACC))
+				resnet18.eval()
+				test_pred=resnet18.forward(x)
+				index=torch.argmax(test_pred,1)
+				total+=t.size(0)
+				correct+=(index==t).sum().float()
+		
+		print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
