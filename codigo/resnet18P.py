@@ -42,6 +42,7 @@ if __name__ == '__main__':
 
 	print("==> Building model...")
 	resnet18 = models.resnet18(False)
+	resnet18.cuda()
 	loss = nn.CrossEntropyLoss()
 	scheduler=lr_scheduler
 	for e in range(50):
