@@ -50,7 +50,7 @@ if __name__ == '__main__':
 	resnet18.cuda()
 	torch.manual_seed(0)
 	for e in range(1):
-		ce = [0.0]*3
+		ce = 0.0
 		optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
 		for x,t in train_loader:
 			print(x)
