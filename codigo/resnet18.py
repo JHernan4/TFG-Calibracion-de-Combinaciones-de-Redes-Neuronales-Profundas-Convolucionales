@@ -46,7 +46,7 @@ if __name__ == '__main__':
 	loss = nn.CrossEntropyLoss()
 	seeds = []
 	losses = []
-	testErrors = []
+	accuracies = []
 	modelos = []
 	#generamos 5 semillas aleatorias y creamos un modelo para cada semilla
 	for i in range(5):
@@ -77,21 +77,22 @@ if __name__ == '__main__':
 					resnet18.eval()
 					test_pred=resnet18.forward(x)
 					index=torch.argmax(test_pred,1) #compute maximum
-					MC+=(index!=t).sum().float() #accumulate MC error
+					total+=t.size(0)
+					correct+=(index==t).sum().float()
 
-			print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
+			print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
 
 		losses.append(ce/500.)
-		testErrors.append(100*MC/10000.)
+		accuracies.append(100*correct/total)
 		print("--------------------------------------------------------")
 		print("--------------------------------------------------------")
 
 	avgCE = 0.0
-	avgTestError = 0.0
+	avgACC = 0.0
 	print(">>>> Resultados: ")
 	for i in range(len(seeds)):
-		print("\tModelo {}: cross entropy {:.5f} and Test error {:.3f}".format(i+1, losses[i], testErrors[i]))
+		print("\tModelo {} (semilla {}): cross entropy {:.5f} and accuracy {:.3f}".format(i+1, seeds[i], losses[i], accuracies[i]))
 		avgCE+=losses[i]/len(losses)
-		avgTestError+=testErrors[i]/len(testErrors)
+		avgACC+=accuracies[i]/len(accuracies)
 
-	print("Valores medios finales: cross entropy {:.5f} and Test error {:.3f}".format(avgCE, avgTestError))
+	print("Valores medios finales: cross entropy {:.5f} and Test error {:.3f}".format(avgCE, avgACC))

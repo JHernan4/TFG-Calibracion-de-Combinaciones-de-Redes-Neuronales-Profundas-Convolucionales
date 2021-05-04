@@ -1,3 +1,6 @@
+####FICHERO DE PRUEAS PARA LA RESNET18
+
+
 import torch
 if not torch.cuda.is_available():
 	print("unable to run on GPU")
@@ -67,7 +70,7 @@ if __name__ == '__main__':
 				test_pred=resnet18.forward(x)
 				index=torch.argmax(test_pred,1)
 				total+=t.size(0)
-				correct+=(index==t).sum()
+				correct+=(index==t).sum().float()
 
 
 		print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
