@@ -44,11 +44,11 @@ if __name__ == '__main__':
 	train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=128,shuffle=True,num_workers=workers)
 	test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=128,shuffle=False,num_workers=workers)
 
-    print('==> Building model..')
-    resnet18 = models.resnet18(False)
+	print("==> Building model...")
+	resnet18 = models.resnet18(False)
 	loss = nn.CrossEntropyLoss()
 	scheduler=lr_scheduler
-	for e in range(350):
+	for e in range(50):
 		ce_test,MC,ce=[0.0]*3
 		optimizer=torch.optim.adam(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
 		for x,t in train_loader:
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 		with torch.no_grad():
 			for x,t in test_loader:
 				x,t=x.cuda(),t.cuda()
-				resnet18.test()
+				resnet18.eval()
 				test_pred=resnet18.forward(x)
 				index=torch.argmax(test_pred,1) #compute maximum
 				MC+=(index!=t).sum().float() #accumulate MC error
