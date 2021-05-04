@@ -6,7 +6,7 @@ import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
 from torch import nn
-from models import ResNet18
+from models.resnet import ResNet18
 
 import numpy as np
 import os
@@ -24,6 +24,7 @@ if __name__ == '__main__':
 
 	nEpocas = 100
 	scheduler=lr_scheduler
+	print("==> Preparing data...")
 	#creacion de las transformaciones que aplicaremos sobre el dataset cifar10
 	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
 	                   transforms.RandomHorizontalFlip(),
@@ -44,14 +45,15 @@ if __name__ == '__main__':
 	test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
 	loss = nn.CrossEntropyLoss()
-	#generamos 5 semillas aleatorias y creamos un modelo para cada semilla
+	print("==> Building model...")
 	resnet18 = ResNet18()
 	resnet18.cuda()
-
-	for e in range(nEpocas):
+	torch.manual_seed(0)
+	for e in range(1):
 		ce = [0.0]*3
 		optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
 		for x,t in train_loader:
+			print(x)
 			x,t=x.cuda(),t.cuda()
 			resnet18.train()
 			o=resnet18.forward(x)
