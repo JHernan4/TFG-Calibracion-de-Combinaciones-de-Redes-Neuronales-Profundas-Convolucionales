@@ -22,7 +22,7 @@ def lr_scheduler(epoch):
 
 if __name__ == '__main__':
 
-	nEpocas = 100
+	nEpocas = 350
 	nModelos = 5
 	scheduler=lr_scheduler
 	print("==> Preparing data...")
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 	avgACC = 0.0
 	print(">>>Resultados: ")
 	for i in range(len(seeds)):
-		print("Modelo {} (semilla {}): cross entropy {:.5f} and accuracy {:.3f}".format(i+1, seeds[i], crossEntropies[i], accuracies[i]))
+		print("\tModelo {} (semilla {}): cross entropy {:.5f} and accuracy {:.3f}".format(i+1, seeds[i], crossEntropies[i], accuracies[i]))
 		avgCE+=crossEntropies[i]/len(crossEntropies)
 		avgACC+=accuracies[i]/len(accuracies)
 	
