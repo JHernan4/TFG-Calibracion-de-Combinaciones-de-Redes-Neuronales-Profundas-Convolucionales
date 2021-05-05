@@ -63,7 +63,7 @@ if __name__ == '__main__':
 			ce = 0.0
 			optimizer=torch.optim.SGD(resnet50.parameters(),lr=scheduler(e),momentum=0.9)
 			for x,t in train_loader:
-				x,t=x.cuda(),t.cuda()
+				x,t=x.to('cuda:1'),t.to('cuda:1')
 				resnet50.train()
 				o=resnet50.forward(x)
 				cost=loss(o,t)
@@ -76,7 +76,7 @@ if __name__ == '__main__':
 				correct = 0
 				total = 0
 				for x,t in test_loader:
-					x,t=x.cuda(),t.cuda()
+					x,t=x.to('cuda:1'),t.to('cuda:1')
 					resnet50.eval()
 					test_pred=resnet50.forward(x)
 					index=torch.argmax(test_pred,1)
