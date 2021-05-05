@@ -58,12 +58,12 @@ if __name__ == '__main__':
 		print("Semilla: {}".format(seed))
 		torch.manual_seed(seed)
 		resnet18 = modelo
-		resnet18.cuda()
+		resnet18 = nn.DataParallel(resnet18, device_ids=[0, 1])
 		for e in range(nEpocas):
 			ce = 0.0
 			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
 			for x,t in train_loader:
-				x,t=x.cuda(),t.cuda()
+				x,t=nn.DataParallel(x, device_ids=[0, 1]), nn.DataParallel(t, device_ids=[0, 1])
 				resnet18.train()
 				o=resnet18.forward(x)
 				cost=loss(o,t)
@@ -76,7 +76,7 @@ if __name__ == '__main__':
 				correct = 0
 				total = 0
 				for x,t in test_loader:
-					x,t=x.cuda(),t.cuda()
+					x,t=nn.DataParallel(x, device_ids=[0, 1]), nn.DataParallel(t, device_ids=[0, 1])
 					resnet18.eval()
 					test_pred=resnet18.forward(x)
 					index=torch.argmax(test_pred,1)

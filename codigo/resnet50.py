@@ -6,7 +6,7 @@ import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
 from torch import nn
-from models.resnet import ResNet18
+from models.resnet import ResNet18, ResNet50 
 
 import numpy as np
 import os
@@ -57,15 +57,15 @@ if __name__ == '__main__':
 	for seed, modelo in zip(seeds, modelos):
 		print("Semilla: {}".format(seed))
 		torch.manual_seed(seed)
-		resnet18 = modelo
-		resnet18.cuda()
+		resnet50 = modelo
+		resnet50.to('cuda:1')
 		for e in range(nEpocas):
 			ce = 0.0
-			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
+			optimizer=torch.optim.SGD(resnet50.parameters(),lr=scheduler(e),momentum=0.9)
 			for x,t in train_loader:
 				x,t=x.cuda(),t.cuda()
-				resnet18.train()
-				o=resnet18.forward(x)
+				resnet50.train()
+				o=resnet50.forward(x)
 				cost=loss(o,t)
 				cost.backward()
 				optimizer.step()
@@ -77,8 +77,8 @@ if __name__ == '__main__':
 				total = 0
 				for x,t in test_loader:
 					x,t=x.cuda(),t.cuda()
-					resnet18.eval()
-					test_pred=resnet18.forward(x)
+					resnet50.eval()
+					test_pred=resnet50.forward(x)
 					index=torch.argmax(test_pred,1)
 					total+=t.size(0)
 					correct+=(index==t).sum().float()
