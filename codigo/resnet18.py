@@ -64,7 +64,7 @@ if __name__ == '__main__':
 			ce = 0.0
 			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
 			for x,t in train_loader:
-				x,t= x.to(f'cuda:{resnet18.device_ids[0]}'), t.to(f'cuda:{resnet18.device_ids[1]}')
+				x,t= x.to(f'cuda:{resnet18.device_ids[0]}'), t.to(f'cuda:{resnet18.device_ids[0]}')
 				resnet18.train()
 				o=resnet18.forward(x)
 				cost=loss(o,t)
@@ -77,7 +77,7 @@ if __name__ == '__main__':
 				correct = 0
 				total = 0
 				for x,t in test_loader:
-					x,t=x.to(f'cuda:{resnet18.device_ids[0]}'), t.to(f'cuda:{resnet18.device_ids[1]}')
+					x,t=x.to(f'cuda:{resnet18.device_ids[1]}'), t.to(f'cuda:{resnet18.device_ids[1]}')
 					resnet18.eval()
 					test_pred=resnet18.forward(x)
 					index=torch.argmax(test_pred,1)
