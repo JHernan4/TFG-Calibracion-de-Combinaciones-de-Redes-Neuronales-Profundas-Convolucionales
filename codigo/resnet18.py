@@ -21,7 +21,7 @@ def lr_scheduler(epoch):
 		return 0.001
 
 if __name__ == '__main__':
-
+	np.rand.seed(123)
 	nEpocas = 350
 	nModelos = 5
 	scheduler=lr_scheduler
