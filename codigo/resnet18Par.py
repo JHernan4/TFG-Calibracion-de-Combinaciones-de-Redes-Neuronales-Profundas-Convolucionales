@@ -31,27 +31,28 @@ if __name__ == '__main__':
     nModelos = 5
     scheduler = lr_scheduler
     print("==> Preparing data...")
-    #creacion de las transformaciones que aplicaremos sobre el dataset cifar10
-	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
-	                   transforms.RandomHorizontalFlip(),
-	                   transforms.ToTensor(),
-	                   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))]) #transforms are different for train and test
+    cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
+    				   transforms.RandomHorizontalFlip(),
+    				   transforms.ToTensor(),
+    				   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))]) #transforms are different for train and test
 
-	cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
-	                   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+    cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
+    				   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
 
-	#cargamos el dataset CIFAR10
-	workers = (int)(os.popen('nproc').read())
-	cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
-	cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
+    #Second, you create your dataset Dataset.  Cifar10 is also provided so we just use it. If you create your own dataset  you can decide how it is loaded to memory and which transformations do you want to apply. Check my tutorial on transfer learning. Basically you use a similar tool to torch.nn but designed for datasets.
 
+    workers = (int)(os.popen('nproc').read())
+    cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
+    cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
+
+    #Third your dataloader. You just pass any dataset you have created. For instance you can decide to shuffle all the dataset at each iteration (that improves generalization) and also yo use several threads. In this case I will detect how many threads does my machine have and use them. Each thread loads a batch of data in parallel to your main loop (your CNN training)
     train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
     model = ResNet18()
     net = torch.nn.DataParallel(model, device_ids=[0,1])
-    for x,t in train_loader:
+    for x,t in test_loader:
         x,t=x.cuda(),t.cuda()
-        output = net(x)
+        output=net(x)
         print(output)
