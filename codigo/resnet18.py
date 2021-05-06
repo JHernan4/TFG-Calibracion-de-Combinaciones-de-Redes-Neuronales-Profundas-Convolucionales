@@ -56,11 +56,12 @@ if __name__ == '__main__':
 		resnet18 = modelo
 		resnet18.cuda()
 		#creamos los dataloaders para iterar el conjunto de datos
-        	train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed)
+        train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed)
 		test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed)
 		for e in range(nEpocas):
 			ce = 0.0
-			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
+			optimizer=torch.optim
+			.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
 			for x,t in train_loader:
 				x,t=x.cuda(),t.cuda()
 				resnet18.train()
@@ -81,9 +82,9 @@ if __name__ == '__main__':
 					index=torch.argmax(test_pred,1)
 					total+=t.size(0)
 					correct+=(index==t).sum().float()
-		
+
 			print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
-		
+
 		crossEntropies.append(ce/500)
 		accuracies.append(100*correct/total)
 		print("---------------------------------------------------")
@@ -96,5 +97,5 @@ if __name__ == '__main__':
 		print("\tModelo {} (semilla {}): cross entropy {:.5f} and accuracy {:.3f}".format(i+1, seeds[i], crossEntropies[i], accuracies[i]))
 		avgCE+=crossEntropies[i]/len(crossEntropies)
 		avgACC+=accuracies[i]/len(accuracies)
-	
+
 	print(">>>Valores medios finales: cross entropy {:.5f} and accuracy {:.3f}".format(avgCE, avgACC))
