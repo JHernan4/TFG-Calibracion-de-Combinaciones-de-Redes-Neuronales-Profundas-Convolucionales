@@ -21,9 +21,9 @@ def lr_scheduler(epoch):
 		return 0.001
 
 if __name__ == '__main__':
-	np.rand.seed(123)
-	nEpocas = 350
-	nModelos = 5
+	np.random.seed(123)
+	nEpocas = 300
+	nModelos = 3
 	scheduler=lr_scheduler
 	print("==> Preparing data...")
 	#creacion de las transformaciones que aplicaremos sobre el dataset cifar10
@@ -41,10 +41,6 @@ if __name__ == '__main__':
 	cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
 	cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
 
-	#creamos los dataloaders para iterar el conjunto de datos
-	train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers)
-	test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
-
 	loss = nn.CrossEntropyLoss()
 	print("==> Building model...")
 	seeds = []
@@ -52,13 +48,16 @@ if __name__ == '__main__':
 	accuracies = []
 	crossEntropies = []
 	for i in range(nModelos):
-		seeds.append(np.random.randint(150))
+		seeds.append(np.random.randint(750))
 		modelos.append(ResNet18())
 	for seed, modelo in zip(seeds, modelos):
 		print("Semilla: {}".format(seed))
 		torch.manual_seed(seed)
 		resnet18 = modelo
 		resnet18.cuda()
+		#creamos los dataloaders para iterar el conjunto de datos
+        	train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed)
+		test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed)
 		for e in range(nEpocas):
 			ce = 0.0
 			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)

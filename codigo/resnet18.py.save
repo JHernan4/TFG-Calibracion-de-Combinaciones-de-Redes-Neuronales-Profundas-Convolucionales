@@ -6,7 +6,6 @@ import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
 from torch import nn
-from models.resnet import ResNet18, ResNet50 
 
 import numpy as np
 import os
@@ -21,13 +20,7 @@ def lr_scheduler(epoch):
 		return 0.001
 
 if __name__ == '__main__':
-
-	nEpocas = 200
-	nModelos = 3
-	scheduler=lr_scheduler
-	print("==> Preparing data...")
-	#creacion de las transformaciones que aplicaremos sobre el dataset cifar10
-	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
+	ain=transforms.Compose([transforms.RandomCrop(32, padding=4),
 	                   transforms.RandomHorizontalFlip(),
 	                   transforms.ToTensor(),
 	                   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))]) #transforms are different for train and test
@@ -46,26 +39,27 @@ if __name__ == '__main__':
 	test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
 	loss = nn.CrossEntropyLoss()
-	print("==> Building model...")
 	seeds = []
+	losses = []
+	testErrors = []
 	modelos = []
-	accuracies = []
-	crossEntropies = []
-	for i in range(nModelos):
+	#generamos 5 semillas aleatorias y creamos un modelo para cada semilla
+	for i in range(5):
 		seeds.append(np.random.randint(150))
-		modelos.append(ResNet50())
-	for seed, modelo in zip(seeds, modelos):
-		print("Semilla: {}".format(seed))
-		torch.manual_seed(seed)
-		resnet50 = modelo
-		resnet50.cuda()
-		for e in range(nEpocas):
-			ce = 0.0
-			optimizer=torch.optim.SGD(resnet50.parameters(),lr=scheduler(e),momentum=0.9)
+		modelos.append(models.resnet18(False))
+	#para cada semilla realizamos el entrenamiento y clasificacion del modelo
+	for seed,modelo in zip(seeds, modelos):
+		resnet18 = modelo
+		resnet18.cuda()
+		torch.cuda.manual_seed(seed)
+		scheduler=lr_scheduler
+		for e in range(350):
+			ce_test,MC,ce=[0.0]*3
+			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
 			for x,t in train_loader:
 				x,t=x.cuda(),t.cuda()
-				resnet50.train()
-				o=resnet50.forward(x)
+				resnet18.train()
+				o=resnet18.forward(x)
 				cost=loss(o,t)
 				cost.backward()
 				optimizer.step()
@@ -73,29 +67,26 @@ if __name__ == '__main__':
 				ce+=cost.data
 
 			with torch.no_grad():
-				correct = 0
-				total = 0
 				for x,t in test_loader:
 					x,t=x.cuda(),t.cuda()
-					resnet50.eval()
-					test_pred=resnet50.forward(x)
-					index=torch.argmax(test_pred,1)
-					total+=t.size(0)
-					correct+=(index==t).sum().float()
-		
-			print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
-		
-		crossEntropies.append(ce/500)
-		accuracies.append(100*correct/total)
-		print("---------------------------------------------------")
-		print("---------------------------------------------------")
+					resnet18.eval()
+					test_pred=resnet18.forward(x)
+					index=torch.argmax(test_pred,1) #compute maximum
+					MC+=(index!=t).sum().float() #accumulate MC error
+
+			print("Epoch {} cross entropy {:.5f} and Test error {:.3f}".format(e,ce/500.,100*MC/10000.))
+
+		losses.append(ce/500.)
+		testErrors.append(100*MC/10000.)
+		print("--------------------------------------------------------")
+		print("--------------------------------------------------------")
 
 	avgCE = 0.0
-	avgACC = 0.0
-	print(">>>Resultados: ")
+	avgTestError = 0.0
+	print(">>>> Resultados: ")
 	for i in range(len(seeds)):
-		print("\tModelo {} (semilla {}): cross entropy {:.5f} and accuracy {:.3f}".format(i+1, seeds[i], crossEntropies[i], accuracies[i]))
-		avgCE+=crossEntropies[i]/len(crossEntropies)
-		avgACC+=accuracies[i]/len(accuracies)
-	
-	print(">>>Valores medios finales: cross entropy {:.5f} and accuracy {:.3f}".format(avgCE, avgACC))
+		print("\tModelo {}: cross entropy {:.5f} and Test error {:.3f}".format(i+1, losses[i], testErrors[i]))
+		avgCE+=losses[i]/len(losses)
+		avgTestError+=testErrors[i]/len(testErrors)
+
+	print("Valores medios finales: cross entropy {:.5f} and Test error {:.3f}".format(avgCE, avgTestError))
