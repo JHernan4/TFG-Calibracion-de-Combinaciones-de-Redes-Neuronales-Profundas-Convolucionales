@@ -6,7 +6,7 @@ import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
 from torch import nn
-from models.resnet import ResNet18, ResNet50 
+from models.resnet import ResNet18, ResNet50
 
 import numpy as np
 import os
@@ -20,9 +20,13 @@ def lr_scheduler(epoch):
 	elif epoch < 350:
 		return 0.001
 
-if __name__ == '__main__':
+def seed_worker(worker_id):
+	worker_seed=torch.initial.seed() % 2**32
+	np.random.seed(worker_seed)
+	random.seed(worker_seed)
 
-	nEpocas = 200
+if __name__ == '__main__':
+	nEpocas = 250
 	nModelos = 3
 	scheduler=lr_scheduler
 	print("==> Preparing data...")
@@ -41,23 +45,20 @@ if __name__ == '__main__':
 	cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
 	cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
 
-	#creamos los dataloaders para iterar el conjunto de datos
-	train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers)
-	test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
-
 	loss = nn.CrossEntropyLoss()
 	print("==> Building model...")
 	seeds = []
-	modelos = []
 	accuracies = []
 	crossEntropies = []
 	for i in range(nModelos):
-		seeds.append(np.random.randint(150))
-		modelos.append(ResNet50())
-	for seed, modelo in zip(seeds, modelos):
+		#creamos los dataloaders para iterar el conjunto de datos
+		train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=worker_seed)
+		test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=worker_seed)
+		seed = np.random.randint(2**32)
+		seeds.append(seed)
 		print("Semilla: {}".format(seed))
 		torch.manual_seed(seed)
-		resnet50 = modelo
+		resnet50 = ResNet50()
 		resnet50.cuda()
 		for e in range(nEpocas):
 			ce = 0.0
@@ -82,9 +83,9 @@ if __name__ == '__main__':
 					index=torch.argmax(test_pred,1)
 					total+=t.size(0)
 					correct+=(index==t).sum().float()
-		
+
 			print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
-		
+
 		crossEntropies.append(ce/500)
 		accuracies.append(100*correct/total)
 		print("---------------------------------------------------")
@@ -97,5 +98,5 @@ if __name__ == '__main__':
 		print("\tModelo {} (semilla {}): cross entropy {:.5f} and accuracy {:.3f}".format(i+1, seeds[i], crossEntropies[i], accuracies[i]))
 		avgCE+=crossEntropies[i]/len(crossEntropies)
 		avgACC+=accuracies[i]/len(accuracies)
-	
+
 	print(">>>Valores medios finales: cross entropy {:.5f} and accuracy {:.3f}".format(avgCE, avgACC))

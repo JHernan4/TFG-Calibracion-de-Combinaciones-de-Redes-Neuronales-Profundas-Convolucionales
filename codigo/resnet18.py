@@ -48,24 +48,21 @@ if __name__ == '__main__':
 	loss = nn.CrossEntropyLoss()
 	print("==> Building model...")
 	seeds = []
-	modelos = []
 	accuracies = []
 	crossEntropies = []
 	for i in range(nModelos):
-		seeds.append(np.random.randint(750))
-		modelos.append(ResNet18())
-	for seed, modelo in zip(seeds, modelos):
-		print("Semilla: {}".format(seed))
-		torch.manual_seed(seed)
-		resnet18 = modelo
-		resnet18.cuda()
 		#creamos los dataloaders para iterar el conjunto de datos
 		train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=worker_seed)
 		test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=worker_seed)
+		seed = np.random.randint(2**32)
+		seeds.append(seed)
+		print("Semilla: {}".format(seed))
+		torch.manual_seed(seed)
+		resnet18 = ResNet18()
+		resnet18.cuda()
 		for e in range(nEpocas):
 			ce = 0.0
-			optimizer=torch.optim
-			.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
+			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
 			for x,t in train_loader:
 				x,t=x.cuda(),t.cuda()
 				resnet18.train()
