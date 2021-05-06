@@ -50,9 +50,28 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
-    model = ResNet18()
-    net = torch.nn.DataParallel(model, device_ids=[0,1])
-    for x,t in test_loader:
-        x,t=x.cuda(),t.cuda()
-        output=net(x)
-        print(output)
+    loss = nn.CrossEntropyLoss()
+    resnet18 = ResNet18()
+    net = torch.nn.DataParallel(resnet18, device_ids=[0,1])
+    for e in range(nEpocas):
+        ce=0.0
+        optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
+        for x,t in train_loader:
+            x,t=x.cuda(),t.cuda()
+            resnet18.train()
+            o=resnet18(x)
+            cost=loss(o,t)
+            cost.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            ce+=cost.data
+
+        with torch.no_grad():
+            for x,t in test_loader:
+                x,t=x.cuda(),t.cuda()
+                resnet18.eval()
+                test_pred=resnet18(x)
+                index=torch.argmax(test_pred,1)
+                total+=t.size(0)
+                correct+=(index==t).sum().float()
+        print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
