@@ -10,6 +10,7 @@ from models.resnet import ResNet18, ResNet50
 
 import numpy as np
 import os
+import random
 
 
 def lr_scheduler(epoch):
@@ -52,8 +53,8 @@ if __name__ == '__main__':
 	crossEntropies = []
 	for i in range(nModelos):
 		#creamos los dataloaders para iterar el conjunto de datos
-		train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=worker_seed)
-		test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=worker_seed)
+		train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
+		test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed_worker)
 		seed = np.random.randint(2**32)
 		seeds.append(seed)
 		print("Semilla: {}".format(seed))
