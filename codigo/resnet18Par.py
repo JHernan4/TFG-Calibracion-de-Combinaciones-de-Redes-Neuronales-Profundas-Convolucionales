@@ -27,24 +27,10 @@ def seed_worker(worker_id):
 	random.seed(worker_seed)
 
 if __name__ == '__main__':
-	nEpocas = 300
-	nModelos = 3
-	scheduler=lr_scheduler
-	print("==> Preparing data...")
-	#creacion de las transformaciones que aplicaremos sobre el dataset cifar10
-	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
-	                   transforms.RandomHorizontalFlip(),
-	                   transforms.ToTensor(),
-	                   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))]) #transforms are different for train and test
-
-	cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
-	                   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
-
-
-	#cargamos el dataset CIFAR10
-	workers = (int)(os.popen('nproc').read())
-	cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
-	cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
+    nEpocas = 200
+    nModelos = 5
+    scheduler = lr_scheduler
+    print("==> Preparing data...")
 
     model = ResNet18()
     net = torch.nn.DataParalell(model, device_ids=[0,1])
