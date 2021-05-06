@@ -22,7 +22,7 @@ def lr_scheduler(epoch):
 		return 0.001
 
 def seed_worker(worker_id):
-	worker_seed=torch.initial.seed() % 2**32
+	worker_seed=torch.initial_seed() % 2**32
 	np.random.seed(worker_seed)
 	random.seed(worker_seed)
 
