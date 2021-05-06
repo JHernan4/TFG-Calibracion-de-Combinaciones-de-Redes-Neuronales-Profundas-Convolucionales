@@ -46,8 +46,8 @@ if __name__ == '__main__':
 	cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
 	cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
 
-
+    model = ResNet18()
     net = torch.nn.DataParallel(model, device_ids=[0, 1])
-    output = net(10)  # input_var can be on any device, including CPU
+    output = net(0.75)  # input_var can be on any device, including CPU
 
     print(output)
