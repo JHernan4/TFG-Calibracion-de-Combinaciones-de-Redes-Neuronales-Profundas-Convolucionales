@@ -20,8 +20,12 @@ def lr_scheduler(epoch):
 	elif epoch < 350:
 		return 0.001
 
+def seed_worker(worker_id):
+	worker_seed=torch.initial.seed() % 2**32
+	np.random.seed(worker_seed)
+	random.seed(worker_seed)
+
 if __name__ == '__main__':
-	np.random.seed(123)
 	nEpocas = 300
 	nModelos = 3
 	scheduler=lr_scheduler
@@ -56,8 +60,8 @@ if __name__ == '__main__':
 		resnet18 = modelo
 		resnet18.cuda()
 		#creamos los dataloaders para iterar el conjunto de datos
-        train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed)
-		test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed)
+		train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=worker_seed)
+		test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=worker_seed)
 		for e in range(nEpocas):
 			ce = 0.0
 			optimizer=torch.optim
