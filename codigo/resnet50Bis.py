@@ -6,7 +6,7 @@ import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
 from torch import nn
-from models.resnetBis import resnet18, resnet50
+from models.resnetBis import resnet50
 
 import numpy as np
 import os
@@ -49,16 +49,16 @@ if __name__ == '__main__':
     seed = np.random.randint(2**10)
     for n in range(nModelos):
         train_loader = torch.utils.data.DataLoader(cifar100_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
-        test_loader = torch.utils.data.DataLoader(cifar100_test,batch_size=100,shuffle=False,num_workers=worker_init_fn=seed_worker)
+        test_loader = torch.utils.data.DataLoader(cifar100_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed_worker)
         seed = np.random.randint(2**10)
         torch.manual_seed(seed)
         torch.cuda.manual_seed(seed)
         print("==> Building model {} (seed = {})...".format(n+1, seed))
-        resnet18 = resnet18()
-        net = torch.nn.DataParallel(resnet18, device_ids=[0,1]).cuda()
+        resnet50 = resnet50()
+        net = torch.nn.DataParallel(resnet50, device_ids=[0,1]).cuda()
         for e in range(nEpocas):
             ce=0.0
-            optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
+            optimizer=torch.optim.SGD(resnet50.parameters(),lr=scheduler(e),momentum=0.9)
             for x,t in train_loader:
                 x,t=x.cuda(),t.cuda()
                 o=net(x)
