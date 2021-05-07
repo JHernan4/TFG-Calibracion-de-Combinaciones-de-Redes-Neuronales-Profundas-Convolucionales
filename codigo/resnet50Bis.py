@@ -33,13 +33,13 @@ if __name__ == '__main__':
 	crossEntropies = []
 	scheduler = lr_scheduler
 	print("==> Preparing data...")
-	cifar10_transforms_train = transforms.Compose([transforms.RandomCrop(32, padding=4),
-									transforms.RandomHorizontalFlip(),
-									transforms.ToTensor(),
-									transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
+					   transforms.RandomHorizontalFlip(),
+					   transforms.ToTensor(),
+					   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2471, 0.2435, 0.2616))]) #transforms are different for train and test
 
-	cifar10_transforms_test = transforms.Compose([transforms.ToTensor(),
-									transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+	cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
+					   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
 	workers = (int)(os.popen('nproc').read())
 	cifar10_train = datasets.CIFAR10('/tmp', train=True, download=True, transform=cifar10_transforms_train)

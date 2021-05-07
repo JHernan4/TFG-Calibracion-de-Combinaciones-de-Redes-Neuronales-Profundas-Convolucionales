@@ -36,7 +36,7 @@ if __name__ == '__main__':
 	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
 					   transforms.RandomHorizontalFlip(),
 					   transforms.ToTensor(),
-					   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2471, 0.2435, 0.2616))]) #transforms are different for train and test
+					   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))]) #transforms are different for train and test
 
 	cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
 					   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
@@ -52,7 +52,7 @@ if __name__ == '__main__':
 	for n in range(nModelos):
 		#Third your dataloader. You just pass any dataset you have created. For instance you can decide to shuffle all the dataset at each iteration (that improves generalization) and also yo use several threads. In this case I will detect how many threads does my machine have and use them. Each thread loads a batch of data in parallel to your main loop (your CNN training)
 		train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
-		test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed_worker)
+		test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=worker_init_fn=seed_worker)
 		seed = np.random.randint(2**10)
 		torch.manual_seed(seed)
 		torch.cuda.manual_seed(seed)
