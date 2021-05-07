@@ -47,9 +47,15 @@ if __name__ == '__main__':
 
     loss = nn.CrossEntropyLoss()
     seed = np.random.randint(2**10)
-    resnet18 = resnet18()
-    net = torch.nn.DataParallel(resnet18, device_ids=[0,1]).cuda()
     for n in range(nModelos):
+        train_loader = torch.utils.data.DataLoader(cifar100_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
+        test_loader = torch.utils.data.DataLoader(cifar100_test,batch_size=100,shuffle=False,num_workers=worker_init_fn=seed_worker)
+        seed = np.random.randint(2**10)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        print("==> Building model {} (seed = {})...".format(n+1, seed))
+        resnet18 = resnet18()
+        net = torch.nn.DataParallel(resnet18, device_ids=[0,1]).cuda()
         for e in range(nEpocas):
             ce=0.0
             optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
