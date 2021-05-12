@@ -92,7 +92,7 @@ if __name__ == '__main__':
 				correct+=(index==t).sum().float()
 
 		print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
-		f.write(str(e)+"\t"+str(ce/500.[0])+"\t"+str(100*correct/total[0]+"\n"))
+		f.write(str(e)+"\t"+str(round(ce.item()/500.,4))+"\t\t"+str(round(100*correct.item()/total,2))+"\n")
 
 	f.close()
 	print("***Fin de ejecución")
