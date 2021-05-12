@@ -2,15 +2,17 @@ import torch
 if not torch.cuda.is_available():
 	print("Error al cargar GPU")
 	exit(-1)
+
 import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
 from torch import nn
-from models.resnet import ResNet18
+import sys
+sys.path.append("../models")
+from resnet import ResNet18
 
 import numpy as np
 import os
-import sys
 import random
 
 file = "CIFAR10_resnet18_seed_"

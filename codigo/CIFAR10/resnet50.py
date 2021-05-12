@@ -6,11 +6,12 @@ import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
 from torch import nn
-from .models.resnet import ResNet50
+import sys
+sys.path.append("../models")
+from resnet import ResNet50
 
 import numpy as np
 import os
-import sys
 import random
 
 file = "CIFAR10_resnet50_seed_"
