@@ -84,7 +84,7 @@ if __name__ == '__main__':
 			resnet50.eval()
 			for x,t in test_loader:
 				x,t=x.cuda(),t.cuda()
-				test_pred=resnet50.forward()
+				test_pred=resnet50.forward(x)
 				index=torch.argmax(test_pred,1)
 				total+=t.size(0)
 				correct+=(index==t).sum().float()
