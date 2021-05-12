@@ -31,16 +31,18 @@ def seed_worker(worker_id):
 	random.seed(worker_seed)
 
 if __name__ == '__main__':
-	if len(sys.argv) < 3:
+	if len(sys.argv) < 5:
 		print("Numero de parámetros incorrecto")
 		exit(-1)
 	if sys.argv[1] != "--seed":
 		print("Parametro {} incorrecto".format(sys.argv[1]))
 		exit(-1)
+	if sys.args[3] != "--nEpocas":
+		print("Parametro {} incorrecto".format(sys.argv[3]))
 	
 	seed = int(sys.argv[2])
 	fileName = file+sys.argv[2]+".dat"
-	nEpocas = 200
+	nEpocas = int(sys.argv[4])
 	f=open(fileName, "w")
 	f.write("Epoca\tCrossEntropy\tAccuracy")
 	print("Fichero {} creado para salida de datos".format(fileName))
@@ -91,7 +93,7 @@ if __name__ == '__main__':
 				correct+=(index==t).sum().float()
 
 		print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
-		res=str(e)+"\t"+str(ce/500.)+"\t"+str(100*correct/total)
-		f.write(res)
+		f.write(str(e)+"\t"+str(ce/500.)+"\t"+str(100*correct/total))
 
+	f.close()
 	print("***Fin de ejecución")
