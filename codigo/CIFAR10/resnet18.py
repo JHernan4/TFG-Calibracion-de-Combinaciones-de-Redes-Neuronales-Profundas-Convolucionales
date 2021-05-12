@@ -44,7 +44,7 @@ if __name__ == '__main__':
 	fileName = file+sys.argv[2]+".dat"
 	nEpocas = int(sys.argv[4])
 	f=open(fileName, "w")
-	f.write("Epoca\tCrossEntropy\tAccuracy")
+	f.write("Epoca\tCrossEntropy\tAccuracy\n")
 	print("Fichero {} creado para salida de datos".format(fileName))
 	scheduler = lr_scheduler
 	print("==> Preparing data...")
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 				correct+=(index==t).sum().float()
 
 		print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
-		f.write(str(e)+"\t"+str(ce/500.)+"\t"+str(100*correct/total))
+		f.write(str(e)+"\t"+str(ce/500.[0])+"\t"+str(100*correct/total[0]+"\n"))
 
 	f.close()
 	print("***Fin de ejecución")
