@@ -1,5 +1,6 @@
 ###CONEXION A MAQUINA VIRTUAL
 ssh jhernan@150.244.58.120
+ssh jhernan@150.244.58.111
 
 ###COMANDO EXPORTAR COMANDO CONDA
 export PATH=/home/voz/anaconda3/bin:$PATH
