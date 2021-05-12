@@ -36,7 +36,7 @@ if __name__ == '__main__':
 	if sys.argv[1] != "--seed":
 		print("Parametro {} incorrecto".format(sys.argv[1]))
 		exit(-1)
-	if sys.args[3] != "--nEpocas":
+	if sys.argv[3] != "--nEpocas":
 		print("Parametro {} incorrecto".format(sys.argv[3]))
 	
 	seed = int(sys.argv[2])
