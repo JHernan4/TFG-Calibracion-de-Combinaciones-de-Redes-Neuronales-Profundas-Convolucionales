@@ -31,7 +31,7 @@ def seed_worker(worker_id):
 	random.seed(worker_seed)
 
 if __name__ == '__main__':
-	if len(sys.argv) < 5:
+	if len(sys.argv) < 7:
 		print("Numero de parámetros incorrecto")
 		exit(-1)
 	if sys.argv[1] != "--seed":
@@ -39,13 +39,20 @@ if __name__ == '__main__':
 		exit(-1)
 	if sys.argv[3] != "--nEpocas":
 		print("Parametro {} incorrecto".format(sys.argv[3]))
+		exit(-1)
+
+	if sys.argv[5] != "--nModelos":
+		print("Parametro {} incorrecto".format(sys.argv[5]))
+		exit(-1)
+	 
+
 	
 	seed = int(sys.argv[2])
 	fileName = file+sys.argv[2]+".dat"
 	nEpocas = int(sys.argv[4])
-	f=open(fileName, "w")
-	f.write("Epoca\tCrossEntropy\tAccuracy\n")
-	print("Fichero {} creado para salida de datos".format(fileName))
+	nModelos = int(sys.argv[6])
+	PATH = './checkpoint'+'_resnet18'
+
 	scheduler = lr_scheduler
 	print("==> Preparing data...")
 	cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
@@ -64,36 +71,40 @@ if __name__ == '__main__':
 	
 	train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
 	test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed_worker)
-	torch.manual_seed(seed)
-	torch.cuda.manual_seed(seed)
-	print("==> Building model")
-	resnet18 = ResNet18()
-	resnet18.cuda()
-	for e in range(nEpocas):
-		ce=0.0
-		optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
-		resnet18.train()
-		for x,t in train_loader:
-			x,t=x.cuda(),t.cuda()
-			o=resnet18.forward(x)
-			cost=loss(o,t)
-			cost.backward()
-			optimizer.step()
-			optimizer.zero_grad()
-			ce+=cost.data
-
-		with torch.no_grad():
-			correct,total=0,0
-			resnet18.eval()
-			for x,t in test_loader:
+	for n in range(nModelos):
+		PATH = PATH + str(n) + '.pt'
+		torch.manual_seed(seed)
+		torch.cuda.manual_seed(seed)
+		print("==> Building model")
+		resnet18 = ResNet18()
+		resnet18.cuda()
+		for e in range(nEpocas):
+			ce=0.0
+			optimizer=torch.optim.SGD(resnet18.parameters(),lr=scheduler(e),momentum=0.9)
+			resnet18.train()
+			for x,t in train_loader:
 				x,t=x.cuda(),t.cuda()
-				test_pred=resnet18.forward(x)
-				index=torch.argmax(test_pred,1)
-				total+=t.size(0)
-				correct+=(index==t).sum().float()
+				o=resnet18.forward(x)
+				cost=loss(o,t)
+				cost.backward()
+				optimizer.step()
+				optimizer.zero_grad()
+				ce+=cost.data
 
-		print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
-		f.write(str(e)+"\t"+str(round(ce.item()/500.,4))+"\t\t"+str(round(100*correct.item()/total,2))+"\n")
+			with torch.no_grad():
+				correct,total=0,0
+				resnet18.eval()
+				for x,t in test_loader:
+					x,t=x.cuda(),t.cuda()
+					test_pred=resnet18.forward(x)
+					print(test_pred)
+					index=torch.argmax(test_pred,1)
+					total+=t.size(0)
+					correct+=(index==t).sum().float()
 
-	f.close()
+			print("Epoca {}: cross entropy {:.5f} and accuracy {:.3f}".format(e,ce/500.,100*correct/total))
+		
+		torch.save(resnet18.state_dict(), PATH)
+		seed = seed * 3
+
 	print("***Fin de ejecución")
