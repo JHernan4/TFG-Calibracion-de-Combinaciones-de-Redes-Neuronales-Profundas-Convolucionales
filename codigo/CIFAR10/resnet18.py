@@ -64,7 +64,7 @@ def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
         
         print("Epoca {}/{}".format(e+1, nEpocas))
     
-    torch.save(model.state_dict(), PATH)
+    torch.save(model.state_dict(), path)
     print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
     return model
 
