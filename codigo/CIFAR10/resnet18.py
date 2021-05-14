@@ -1,3 +1,9 @@
+##################################################################################################################
+#programa 1 para la creacion de ensembles de resnet18. Crea y entrena para el dataset CIFAR10 tantos modelos
+#como se indique por parametros (parametro --nModelos). Psteriormente vuelca cada modelo en su correspondiente .pt
+#para ser posteriormente cargado por el programa ensembleResnet18.py 
+##################################################################################################################
+
 import torch
 if not torch.cuda.is_available():
     print("Error al cargar GPU")
@@ -41,7 +47,8 @@ def seed_worker(worker_id):
 def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
     torch.manual_seed(seed)
     model=ResNet18()
-    path = path + str(nModelo) + '.pt'
+    model = torch.nn.DataParallel(model, device_ids=[0,1])
+    path = path + "_"+str(nModelo) + '.pt'
     for e in range(nEpocas):
         ce=0.0
         optimizer=torch.optim.SGD(model.parameters(),lr=scheduler(e),momentum=0.9)
