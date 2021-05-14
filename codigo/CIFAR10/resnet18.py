@@ -24,8 +24,6 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-PATH = './checkpoint'+'_resnet18'
-
 def lr_scheduler(epoch):
     if epoch < 150:
         return 0.1
@@ -40,10 +38,10 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
-def trainModel(trainLoader, seed, nModelo, nEpocas=250):
+def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
     torch.manual_seed(seed)
     model=ResNet18()
-    PATH = PATH + str(nModelo) + '.pt'
+    path = path + str(nModelo) + '.pt'
     for e in range(nEpocas):
         ce=0.0
         optimizer=torch.optim.SGD(model.parameters(),lr=scheduler(e),momentum=0.9)
@@ -63,7 +61,7 @@ def trainModel(trainLoader, seed, nModelo, nEpocas=250):
 
 
 if __name__ == '__main__':
-
+    PATH = './checkpoint'+'_resnet18'
     args = parse_args()
     nModelos = args.nModelos
     nEpocas = args.nEpocas
@@ -89,5 +87,5 @@ if __name__ == '__main__':
     
     models=[]
     for n in range(nModelos):
-        seed = np.random.randInt(2**10)
-        models.append(trainModel(train_loader, seed, n, nEpocas))
+        seed = np.random.randint(2**10)
+        models.append(trainModel(train_loader, seed, n, PATH, nEpocas))
