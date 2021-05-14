@@ -88,6 +88,6 @@ if __name__ == '__main__':
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed_worker)
     
     models=[]
-    for n in nModelos:
+    for n in range(nModelos):
         seed = np.random.randInt(2**10)
         models.append(trainModel(train_loader, seed, n, nEpocas))
