@@ -39,13 +39,21 @@ def explotation(model, testLoader, n):
             test_pred=model.forward(x)
             logit=softmax(test_pred).cpu()
             logits.append(torch.argmax(logit,1))
-            targets.append(t.cpu())
             index=torch.argmax(logit,1)
             total+=t.size(0)
-            correct+=accuracy_score(t.cpu(), logit, normalize=True)
+            correct+=accuracy_score(t.cpu(), index, normalize=False)
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
     return logits
+
+
+def avgEnsemble(logits):
+    avgLogits = []
+    for n in range(len(logits)):
+        for i in range(len(logits[n])):
+            avgLogits[i]+=logits[n][i]/3
+
+    return avgLogits
 
 if __name__ == '__main__':
     args = parse_args()
@@ -66,5 +74,7 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        logits.append(explotation(model, test_loader, n)) 
+        logits.append(explotation(model, test_loader, n))
+
+    avgLgits = avgEnsemble(logits) 
         
