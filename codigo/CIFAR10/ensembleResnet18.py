@@ -26,12 +26,12 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-def explotation(self, testLoader, n):
+def explotation(model, testLoader, n):
     with torch.no_grad():
         correct,total=0,0
         for x,t in test_loader:
             x,t=x.cuda(),t.cuda()
-            test_pred=self.forward(x)
+            test_pred=model.forward(x)
             index=torch.argmax(test_pred,1)
             total+=t.size(0)
             correct+=(index==t).sum().float()
@@ -56,4 +56,4 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        model.explotation(test_loader, n)
+        explotation(model, test_loader, n)
