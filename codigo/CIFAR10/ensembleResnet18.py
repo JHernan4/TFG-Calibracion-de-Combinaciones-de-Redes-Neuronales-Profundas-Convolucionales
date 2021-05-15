@@ -62,7 +62,7 @@ def avgEnsemble(logits, testLoader):
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             total+=t.size(0)
-            correct+=accuracy_score(t, avgLogits[i].cuda(), normalize=False)
+            correct+=(t==avgLogits[i].cuda()).sum().float()
             i=i+1
 
     return correct/total
