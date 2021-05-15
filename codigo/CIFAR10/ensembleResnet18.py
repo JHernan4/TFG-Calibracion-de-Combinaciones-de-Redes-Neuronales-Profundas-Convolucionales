@@ -35,7 +35,7 @@ def explotation(model, testLoader, n):
             index=torch.argmax(test_pred,1)
             total+=t.size(0)
             correct+=(index==t).sum().float()
-    print("Modelo {}: accuracy {}".format(n+1, 100*correct/total))
+    print("Modelo {}: accuracy {:.3f}".format(n+1, 100*correct/total))
 
 if __name__ == '__main__':
     args = parse_args()
