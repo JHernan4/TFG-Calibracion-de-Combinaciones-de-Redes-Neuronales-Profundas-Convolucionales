@@ -34,7 +34,7 @@ def explotation(model, testLoader, n):
     with torch.no_grad():
         correct,total=0,0
         i=0
-        for x,t in test_loader:
+        for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
             logit=softmax(test_pred).cpu()
@@ -50,20 +50,21 @@ def explotation(model, testLoader, n):
 def avgEnsemble(logits, testLoader):
     avgLogits = []
     for i in range(len(logits[0])):
-        avgLogits.append(logits[0][i]/3)
+        avgLogits.append(logits[0][i]/len(logits))
     
     for n in range(1, len(logits)):
         for i in range(len(logits[n])):
-            avgLogits[i]+=logits[n][i]/3
+            avgLogits[i]+=logits[n][i]/len(logits)
     
     with torch.no_grad():
         correct,total=0,0
         i=0
-        for x,t in test_loader:
+        for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             total+=t.size(0)
-            correct+=accuracy_score(t.cpu(), avgLogits[i], normalize=False)
-        
+            correct+=accuracy_score(t, avgLogits[i].cuda(), normalize=False)
+            i=i+1
+
     return correct/total
 
 if __name__ == '__main__':
@@ -76,7 +77,7 @@ if __name__ == '__main__':
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
-    test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed_worker)
+    test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
     logits = []
     for n in range(nModelos):
@@ -89,7 +90,7 @@ if __name__ == '__main__':
 
     avgACC = avgEnsemble(logits, test_loader)
 
-    print("Ensemble de {} modelos: {}".format(nModelos, avgACC))
+    print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
 
     
         
