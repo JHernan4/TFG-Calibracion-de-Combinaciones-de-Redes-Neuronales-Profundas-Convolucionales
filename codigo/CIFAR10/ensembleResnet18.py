@@ -49,7 +49,9 @@ def explotation(model, testLoader, n):
 
 def avgEnsemble(logits):
     avgLogits = []
-    for n in range(len(logits)):
+    for i in range(len(logits[0])):
+        avgLogits[i] = logits[0][i]/3
+    for n in range(1, len(logits)):
         for i in range(len(logits[n])):
             avgLogits[i]+=logits[n][i]/3
 
@@ -76,5 +78,7 @@ if __name__ == '__main__':
         model.eval()
         logits.append(explotation(model, test_loader, n))
 
-    avgLgits = avgEnsemble(logits) 
+    avgLogits = avgEnsemble(logits)
+
+    
         
