@@ -28,7 +28,7 @@ def seed_worker(worker_id):
 
 def explotation(model, testLoader, n):
     softmax = nn.Softmax(dim=1)
-    logits = np.array()
+    logits = []
     with torch.no_grad():
         correct,total=0,0
         i=0
@@ -36,7 +36,7 @@ def explotation(model, testLoader, n):
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
             logit=softmax(test_pred)
-            logits[i] = logit
+            logits.append(np.array(logit))
             index=torch.argmax(test_pred,1)
             total+=t.size(0)
             correct+=(index==t).sum().float()
@@ -56,12 +56,12 @@ if __name__ == '__main__':
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed_worker)
 
-    logits = np.array()
+    logits = []
     for n in range(nModelos):
         model = ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        logits[n] = explotation(model, test_loader, n)
+        logits.append(explotation(model, test_loader, n)) 
         
