@@ -38,10 +38,10 @@ def explotation(model, testLoader, n):
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
             logit=softmax(test_pred).cpu()
-            logits.append(torch.argmax(logit,1))
             index=torch.argmax(logit,1)
+            logits.append(index)
             total+=t.size(0)
-            correct+=accuracy_score(t.cpu(), index, normalize=False)
+            correct+=(t==index.cuda()).sum().float()
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
     return logits
