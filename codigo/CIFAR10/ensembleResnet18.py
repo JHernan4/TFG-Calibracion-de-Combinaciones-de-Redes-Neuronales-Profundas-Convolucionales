@@ -47,15 +47,24 @@ def explotation(model, testLoader, n):
     return logits
 
 
-def avgEnsemble(logits):
+def avgEnsemble(logits, testLoader):
     avgLogits = []
     for i in range(len(logits[0])):
         avgLogits[i] = logits[0][i]/3
+    
     for n in range(1, len(logits)):
         for i in range(len(logits[n])):
             avgLogits[i]+=logits[n][i]/3
-
-    return avgLogits
+    
+    with torch.no_grad():
+        correct,total=0,0
+        i=0
+        for x,t in test_loader:
+            x,t=x.cuda(),t.cuda()
+            total+=t.size(0)
+            correct+=accuracy_score(t.cpu(), avgLogits[i], normalize=False)
+        
+    return correct/total
 
 if __name__ == '__main__':
     args = parse_args()
@@ -78,7 +87,9 @@ if __name__ == '__main__':
         model.eval()
         logits.append(explotation(model, test_loader, n))
 
-    avgLogits = avgEnsemble(logits)
+    avgACC = avgEnsemble(logits, test_loader)
+
+    print("Ensemble de {} modelos: {}".format(nModelos, avgACC))
 
     
         
