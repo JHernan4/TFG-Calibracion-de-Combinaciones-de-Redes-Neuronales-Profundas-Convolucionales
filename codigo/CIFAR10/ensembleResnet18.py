@@ -14,7 +14,6 @@ from numpy import array
 import os
 import random
 import argparse
-from sklearn.metrics import accuracy_score
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Parametros para configuracion del entrenamiento de las redes neuronales convolucionales')
@@ -30,16 +29,14 @@ def seed_worker(worker_id):
 def explotation(model, testLoader, n):
     softmax = nn.Softmax(dim=1)
     logits = []
-    targets = []
     with torch.no_grad():
         correct,total=0,0
-        i=0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
             logit=softmax(test_pred).cpu()
             index=torch.argmax(logit,1)
-            logits.append(index)
+            logits.append(logit)
             total+=t.size(0)
             correct+=(t==index.cuda()).sum().float()
     
@@ -62,7 +59,8 @@ def avgEnsemble(logits, testLoader):
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             total+=t.size(0)
-            correct+=(t==avgLogits[i].cuda()).sum().float()
+            index=torch.argmax(avgLogits[i],1)
+            correct+=(t==index.cuda()).sum().float()
             i=i+1
 
     return correct/total
