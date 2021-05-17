@@ -91,5 +91,5 @@ if __name__ == '__main__':
     print("==> Entrenando modelos...")
     models=[]
     for n in range(nModelos):
-        seed = np.random.randint(2**10)
+        seed = np.random.randint(2**32)
         models.append(trainModel(train_loader, seed, n, PATH, nEpocas))
