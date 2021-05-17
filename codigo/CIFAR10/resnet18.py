@@ -1,3 +1,9 @@
+##################################################################################################################
+#programa 1 para la creacion de ensembles de resnet18. Crea y entrena para el dataset CIFAR10 tantos modelos
+#como se indique por parametros (parametro --nModelos). Psteriormente vuelca cada modelo en su correspondiente .pt
+#para ser posteriormente cargado por el programa ensembleResnet18.py 
+##################################################################################################################
+
 import torch
 if not torch.cuda.is_available():
     print("Error al cargar GPU")
@@ -39,9 +45,11 @@ def seed_worker(worker_id):
 
 
 def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
+    loss = nn.CrossEntropyLoss()
     torch.manual_seed(seed)
     model=ResNet18()
-    path = path + str(nModelo) + '.pt'
+    model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
+    path = path + "_"+str(nModelo+1) + '.pt'
     for e in range(nEpocas):
         ce=0.0
         optimizer=torch.optim.SGD(model.parameters(),lr=scheduler(e),momentum=0.9)
@@ -56,7 +64,8 @@ def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
         
         print("Epoca {}/{}".format(e+1, nEpocas))
     
-    torch.save(model.state_dict(), PATH)	
+    torch.save(model.state_dict(), path)
+    print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
     return model
 
 
@@ -67,24 +76,19 @@ if __name__ == '__main__':
     nEpocas = args.nEpocas
     
     scheduler = lr_scheduler
-    print("==> Preparing data...")
+    print("==> Preparando dataset de entrenamiento...")
     cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
                         transforms.RandomHorizontalFlip(),
                            transforms.ToTensor(),
-                           transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))]) 
-
-    cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
                            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
 
     workers = (int)(os.popen('nproc').read())
     cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
-    cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
-    loss = nn.CrossEntropyLoss()
-    
+       
     train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
-    test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, worker_init_fn=seed_worker)
     
+    print("==> Entrenando modelos...")
     models=[]
     for n in range(nModelos):
         seed = np.random.randint(2**10)
