@@ -1,6 +1,6 @@
 ##################################################################################################################
-#programa 1 para la creacion de ensembles de resnet18. Crea y entrena para el dataset CIFAR10 tantos modelos
-#como se indique por parametros (parametro --nModelos). Psteriormente vuelca cada modelo en su correspondiente .pt
+#programa 1 para la creacion de ensembles de resnet18. Crea y entrena para el dataset CIFAR100 tantos modelos
+#como se indique por parametros (parametro --nModelos). Posteriormente vuelca cada modelo en su correspondiente .pt
 #para ser posteriormente cargado por el programa ensembleResnet18.py 
 ##################################################################################################################
 
