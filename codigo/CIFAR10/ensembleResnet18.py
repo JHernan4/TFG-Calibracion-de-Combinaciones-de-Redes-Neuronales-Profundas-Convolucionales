@@ -26,22 +26,27 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-def explotation(model, testLoader, n):
+def explotation(model, testLoader, n, path):
     softmax = nn.Softmax(dim=1)
-    logits = []
+    logits = [] #para guardar los logits del modelo 
+    logitsSof = [] #almacena los logits pasados por la Softmax para devolverlos y usarlos en el average
+    path =  path + "_"+str(n+1) + '.pt'
     with torch.no_grad():
         correct,total=0,0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
+            logits.append(test_pred)
             logit=softmax(test_pred).cpu()
             index=torch.argmax(logit,1)
-            logits.append(logit)
+            logitsSof.append(logit)
             total+=t.size(0)
             correct+=(t==index.cuda()).sum().float()
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    return logits
+    torch.save(logits, path)
+    print("Logits del modelo {} guardados correctamente en el fichero {}".format(n+1, path))
+    return logitsSof
 
 
 def avgEnsemble(logits, testLoader):
@@ -67,7 +72,8 @@ def avgEnsemble(logits, testLoader):
 
 if __name__ == '__main__':
     args = parse_args()
-    PATH = './checkpoint'+'_resnet18'
+    PATH = './checkpointResnet18/checkpoint_resnet18'
+    LOGITSPATH = './logitsResnet18/logits_resnet18'
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
@@ -84,7 +90,7 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        logits.append(explotation(model, test_loader, n))
+        logits.append(explotation(model, test_loader, n, LOGITSPATH))
 
     avgACC = avgEnsemble(logits, test_loader)
 

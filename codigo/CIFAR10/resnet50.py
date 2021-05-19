@@ -71,7 +71,7 @@ def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
 
 
 if __name__ == '__main__':
-    PATH = './checkpoint'+'_resnet50'
+    PATH = './checkpointResnet50/checkpoint'+'_resnet50'
     args = parse_args()
     nModelos = args.nModelos
     nEpocas = args.nEpocas
