@@ -1,0 +1,17 @@
+CIFAR10
+1. CaiT-M-36 U 224
+2. CvT-W24
+3. CeiT-S
+4. TNT-B
+5. EfficientNetV2-L
+6. CeiT-S
+7. EfficientNetV2-M
+8. EfficientNetV2-S
+
+
+CIFAR100
+1. ViT-B-16
+2. EfficientNetV2-L
+3. EfficientNetV2-M
+4. EfficientNetV2-S
+5. TNT-B

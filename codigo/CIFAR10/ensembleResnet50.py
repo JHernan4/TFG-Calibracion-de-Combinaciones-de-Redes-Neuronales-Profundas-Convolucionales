@@ -74,7 +74,7 @@ def avgEnsemble(logits, testLoader):
 
 if __name__ == '__main__':
     args = parse_args()
-    PATH = './checkpoint'+'_resnet50'
+    PATH = './checkpointResnet50/checkpoint'+'_resnet50'
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
