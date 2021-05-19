@@ -85,12 +85,14 @@ if __name__ == '__main__':
 
 
     workers = (int)(os.popen('nproc').read())
-    cifar100_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
+    cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
        
-    train_loader = torch.utils.data.DataLoader(cifar100_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
+    train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
     
     print("==> Entrenando modelos...")
     models=[]
     for n in range(nModelos):
         seed = np.random.randint(2**32)
+        if n<4:
+           continue
         models.append(trainModel(train_loader, seed, n, PATH, nEpocas))
