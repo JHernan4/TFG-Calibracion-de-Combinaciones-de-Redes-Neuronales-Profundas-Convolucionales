@@ -35,20 +35,22 @@ def seed_worker(worker_id):
 
 def explotation(model, testLoader, n):
     softmax = nn.Softmax(dim=1)
-    logits = []
+    logits = [] #para guardar los logits del modelo 
+    logitsSof = [] #almacena los logits pasados por la Softmax para devolverlos y usarlos en el average
     with torch.no_grad():
         correct,total=0,0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
+            logits.append(test_pred)
             logit=softmax(test_pred).cpu()
+            logitsSof.append(logit)
             index=torch.argmax(logit,1)
-            logits.append(logit)
             total+=t.size(0)
             correct+=(t==index.cuda()).sum().float()
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    return logits
+    return logitsSof
 
 
 def avgEnsemble(logits, testLoader):
