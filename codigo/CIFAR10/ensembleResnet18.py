@@ -90,7 +90,7 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        logits.append(explotation(model, test_loader, n))
+        logits.append(explotation(model, test_loader, n, LOGITSPATH))
 
     avgACC = avgEnsemble(logits, test_loader)
 
