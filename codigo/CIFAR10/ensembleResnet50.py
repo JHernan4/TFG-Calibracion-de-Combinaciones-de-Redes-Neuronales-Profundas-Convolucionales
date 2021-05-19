@@ -51,8 +51,8 @@ def explotation(model, testLoader, n, path):
             correct+=(t==index.cuda()).sum().float()
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    torch.save(logits, path)   
+    torch.save(logits, path)
+    print("Logits del modelo {} guardados correctamente en el fichero {}".format(n+1, path))
     return logitsSof
 
 
