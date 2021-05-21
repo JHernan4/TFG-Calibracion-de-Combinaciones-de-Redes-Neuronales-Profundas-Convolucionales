@@ -8,7 +8,9 @@ from torchvision import datasets,transforms
 from torch import nn
 import sys
 sys.path.append("../models")
+sys.path.append("../calibration")
 from resnet import ResNet18
+from utils_calibration import compute_calibration_measures
 import numpy as np
 from numpy import array
 import os
@@ -18,6 +20,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description='Parametros para configuracion del entrenamiento de las redes neuronales convolucionales')
     parser.add_argument('--nModelos', help="número de modelos que componen el emsemble", required=True, type = int)
+    parser.add_argument('--L', help="constante para modificar logits", required=True, type = int)
     args = parser.parse_args()
     return args
 
@@ -47,6 +50,16 @@ def explotation(model, testLoader, n, path):
     torch.save(logits, path)
     print("Logits del modelo {} guardados correctamente en el fichero {}".format(n+1, path))
     return logitsSof
+
+
+def calibracion(n, path, targets):
+    path = path + "_"+str(n+1) + '.pt'
+    logits = torch.load(path)
+    ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
+
+    ECE,MCE,BRIER,NNL = compute_calibration_measures(logits, targets, False, 100)
+
+    print("Medidas de calibracion modelo {}: \n\tECE: {}\n\tMCE: {}\n\BRIER: {}\n\tNNL: {}".format(n+1, ECE, MCE, BRIER, NNL))
 
 
 def avgEnsemble(logits, testLoader):
@@ -82,6 +95,10 @@ if __name__ == '__main__':
     
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
+    #almacenamos targets del dataset
+    targets = []
+    for x, t in test_loader:
+        targets.append(t)
 
     logits = []
     for n in range(nModelos):
@@ -95,6 +112,11 @@ if __name__ == '__main__':
     avgACC = avgEnsemble(logits, test_loader)
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
+
+
+    #Calibracion
+    for n in range(nModelos):
+        calibracion(n, LOGITSPATH, targets)
 
     
         
