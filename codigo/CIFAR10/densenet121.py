@@ -48,7 +48,7 @@ def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
     loss = nn.CrossEntropyLoss()
     torch.manual_seed(seed)
     model=DenseNet121()
-    model = torch.nn.DataParallel(model, device_ids=[1]).cuda()
+    model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
     path = path + "_"+str(nModelo+1) + '.pt'
     for e in range(nEpocas):
         ce=0.0
