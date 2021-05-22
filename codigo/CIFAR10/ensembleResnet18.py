@@ -52,9 +52,7 @@ def explotation(model, testLoader, n, path):
     return logitsSof, logits
 
 
-def calibracion(n, path, targets):
-    path = path + "_"+str(n+1) + '.pt'
-    logits = torch.load(path)
+def calibracion(logits, n, targets):
     ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
 
     ECE,MCE,BRIER,NNL = compute_calibration_measures(logits, targets, False, 100)
@@ -98,7 +96,8 @@ if __name__ == '__main__':
     #almacenamos targets del dataset
     targets = []
     for x, t in test_loader:
-        targets.append(t)
+        targets.append(np.array(t, dtype=np.float32))
+    targets = np.array(targets)
 
     logitsSof = []
     logits = []
@@ -112,9 +111,16 @@ if __name__ == '__main__':
         logits.append(logit)
         logitsSof.append(logitSof)
 
+    logits = np.array(logits)
     avgACC = avgEnsemble(logitsSof, test_loader)
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
+
+    n=0
+    #calibracion de modelos individuales
+    for logit, target in zip(logits, targets):
+        calibracion(logit, n, target)
+        n+=1
 
 
     

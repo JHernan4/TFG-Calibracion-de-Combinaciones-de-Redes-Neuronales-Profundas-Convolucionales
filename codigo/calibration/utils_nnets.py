@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from . import config
+from config import *
 
 
 #base class for all the models to allow for dynamic resize of tensor for noises
