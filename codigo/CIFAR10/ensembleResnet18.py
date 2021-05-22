@@ -42,14 +42,14 @@ def explotation(model, testLoader, n, path):
             logit = softmax(test_pred)
             logitsSof.append(logit)
             index = torch.argmax(logit, 1)
+            logit = np.array(index.cpu(), dtype=np.float32)
             logits.append(index)
             total+=t.size(0)
             correct+=(t==index).sum().float()
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    torch.save(logits, path)
-    print("Logits del modelo {} guardados correctamente en el fichero {}".format(n+1, path))
-    return logitsSof
+    logits = np.array(logits)
+    return logitsSof, logits
 
 
 def calibracion(n, path, targets):
@@ -100,6 +100,7 @@ if __name__ == '__main__':
     for x, t in test_loader:
         targets.append(t)
 
+    logitsSof = []
     logits = []
     for n in range(nModelos):
         model = ResNet18()
@@ -107,9 +108,11 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        logits.append(explotation(model, test_loader, n, LOGITSPATH))
+        logitSof, logit = explotation(model, test_loader, n, LOGITSPATH) 
+        logits.append(logit)
+        logitsSof.append(logitSof)
 
-    avgACC = avgEnsemble(logits, test_loader)
+    avgACC = avgEnsemble(logitsSof, test_loader)
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
 
