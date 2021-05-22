@@ -39,12 +39,12 @@ def explotation(model, testLoader, n, path):
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
-            logits.append(test_pred)
-            logit=softmax(test_pred).cpu()
-            index=torch.argmax(logit,1)
+            logit = softmax(test_pred)
             logitsSof.append(logit)
+            index = torch.argmax(logit, 1)
+            logits.append(index)
             total+=t.size(0)
-            correct+=(t==index.cuda()).sum().float()
+            correct+=(t==index).sum().float()
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
     torch.save(logits, path)
@@ -113,10 +113,6 @@ if __name__ == '__main__':
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
 
-
-    #Calibracion
-    for n in range(nModelos):
-        calibracion(n, LOGITSPATH, targets)
 
     
         
