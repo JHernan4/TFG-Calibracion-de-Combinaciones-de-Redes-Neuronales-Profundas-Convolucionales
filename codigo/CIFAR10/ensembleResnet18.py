@@ -39,22 +39,20 @@ def explotation(model, testLoader, n, path):
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
-            logits.append(test_pred)
-            logit=softmax(test_pred).cpu()
-            index=torch.argmax(logit,1)
+            logit = softmax(test_pred)
             logitsSof.append(logit)
+            index = torch.argmax(logit, 1)
+            logit = np.array(index.cpu(), dtype=np.float32)
+            logits.append(index)
             total+=t.size(0)
-            correct+=(t==index.cuda()).sum().float()
+            correct+=(t==index).sum().float()
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    torch.save(logits, path)
-    print("Logits del modelo {} guardados correctamente en el fichero {}".format(n+1, path))
-    return logitsSof
+    logits = np.array(logits)
+    return logitsSof, logits
 
 
-def calibracion(n, path, targets):
-    path = path + "_"+str(n+1) + '.pt'
-    logits = torch.load(path)
+def calibracion(logits, n, targets):
     ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
 
     ECE,MCE,BRIER,NNL = compute_calibration_measures(logits, targets, False, 100)
@@ -98,8 +96,10 @@ if __name__ == '__main__':
     #almacenamos targets del dataset
     targets = []
     for x, t in test_loader:
-        targets.append(t)
+        targets.append(np.array(t, dtype=np.float32))
+    targets = np.array(targets)
 
+    logitsSof = []
     logits = []
     for n in range(nModelos):
         model = ResNet18()
@@ -107,16 +107,21 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        logits.append(explotation(model, test_loader, n, LOGITSPATH))
+        logitSof, logit = explotation(model, test_loader, n, LOGITSPATH) 
+        logits.append(logit)
+        logitsSof.append(logitSof)
 
-    avgACC = avgEnsemble(logits, test_loader)
+    logits = np.array(logits)
+    avgACC = avgEnsemble(logitsSof, test_loader)
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
 
+    n=0
+    #calibracion de modelos individuales
+    for logit, target in zip(logits, targets):
+        calibracion(logit, n, target)
+        n+=1
 
-    #Calibracion
-    for n in range(nModelos):
-        calibracion(n, LOGITSPATH, targets)
 
     
         

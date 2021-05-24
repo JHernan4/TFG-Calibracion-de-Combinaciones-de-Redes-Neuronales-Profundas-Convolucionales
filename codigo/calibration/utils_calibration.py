@@ -6,10 +6,10 @@ from torch.nn.functional import softmax
 import numpy
 
 # config
-from . import config
+from config import *
 
 #Custom
-from .utils_nnets import categorical_to_one_hot
+from utils_nnets import categorical_to_one_hot
 
 ## Compute Calibration Metrics
 def compute_calibration_measures(predictions: torch.tensor ,true_labels: torch.tensor ,apply_softmax: bool ,bins: int) -> list:
