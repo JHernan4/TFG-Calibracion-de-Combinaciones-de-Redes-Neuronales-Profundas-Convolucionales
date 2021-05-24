@@ -84,15 +84,15 @@ if __name__ == '__main__':
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
-    cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
+    cifar100_transforms_test=transforms.Compose([transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     
-    cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
-    test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
+    cifar100_test=datasets.CIFAR100('/tmp/',train=False,download=False,transform=cifar100_transforms_test)
+    test_loader = torch.utils.data.DataLoader(cifar100_test,batch_size=100,shuffle=False,num_workers=workers)
 
     logits = []
     for n in range(nModelos):
-        model = DenseNet121()
+        model = DenseNet121(100)
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
