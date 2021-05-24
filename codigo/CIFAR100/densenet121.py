@@ -47,7 +47,7 @@ def seed_worker(worker_id):
 def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
     loss = nn.CrossEntropyLoss()
     torch.manual_seed(seed)
-    model=DenseNet121(100)
+    model=DenseNet121(nClasses=100)
     model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
     path = path + "_"+str(nModelo+1) + '.pt'
     for e in range(nEpocas):
@@ -92,6 +92,4 @@ if __name__ == '__main__':
     models=[]
     for n in range(nModelos):
         seed = np.random.randint(2**10)
-        if n < 4:
-           continue
         models.append(trainModel(train_loader, seed, n, PATH, nEpocas))
