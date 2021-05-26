@@ -42,8 +42,7 @@ def explotation(model, testLoader, n, path):
             logit = softmax(test_pred)
             logitsSof.append(logit) #meter esto en la funcion de calibracion
             index = torch.argmax(logit, 1)
-            logit = np.array(index.cpu(), dtype=np.float32)
-            logits.append(np.array(test_pred.cpu(), dtype=np.float32))
+            logits.append(np.array(logit.cpu(), dtype=np.float32))
             total+=t.size(0)
             correct+=(t==index).sum().float()
     
