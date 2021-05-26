@@ -50,6 +50,7 @@ def explotation(model, testLoader, n, path):
 	print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
 	logits = np.array(logits)
 	logitsSof = np.array(logitsSof)
+	print(logitsSof.dtype)
 	return logitsSof, logits
 
 
