@@ -49,6 +49,7 @@ def explotation(model, testLoader, n, path):
 	
 	print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
 	logits = np.array(logits)
+	logitsSof = np.array(logitsSof)
 	return logitsSof, logits
 
 
@@ -98,7 +99,6 @@ if __name__ == '__main__':
 	for x, t in test_loader:
 		targets.append(np.array(t))
 	targets = torch.from_numpy(np.array(targets))
-	print(targets.dtype)
 
 	logitsSof = []
 	logits = []
