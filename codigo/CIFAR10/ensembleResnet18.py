@@ -40,7 +40,7 @@ def explotation(model, testLoader, n, path):
 			x,t=x.cuda(),t.cuda()
 			test_pred=model.forward(x)
 			logit = softmax(test_pred)
-			logitsSof.append(logit)
+			logitsSof.append(logit) #meter esto en la funcion de calibracion
 			index = torch.argmax(logit, 1)
 			logit = np.array(index.cpu(), dtype=np.float32)
 			logits.append(logit)
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 		print("Modelo {} cargado correctamente".format(n+1))
 		model.eval()
 		logitSof, logit = explotation(model, test_loader, n, LOGITSPATH) 
-		logits.append(logit)
+		logits.append(logitSof)
 		logitsSof.append(logitSof)
 
 	logits = torch.Tensor(np.array(logits))
