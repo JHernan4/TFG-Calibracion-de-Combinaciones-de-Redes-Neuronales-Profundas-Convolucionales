@@ -41,8 +41,8 @@ def explotation(model, testLoader, n, path):
             test_pred=model.forward(x)
             logit = softmax(test_pred)
             logitsSof.append(logit) #meter esto en la funcion de calibracion
+            logits.append(np.array(test_pred[1], dtype=np.float32))
             index = torch.argmax(logit, 1)
-            logits.append(np.array(logit.cpu(), dtype=np.float32))
             total+=t.size(0)
             correct+=(t==index).sum().float()
     
@@ -93,6 +93,7 @@ if __name__ == '__main__':
     
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
+    
     #almacenamos targets del dataset
     targets = []
     for x, t in test_loader:
