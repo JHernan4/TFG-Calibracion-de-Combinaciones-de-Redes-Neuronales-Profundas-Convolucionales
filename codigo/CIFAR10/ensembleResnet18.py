@@ -96,9 +96,11 @@ if __name__ == '__main__':
     #almacenamos targets del dataset
     targets = []
     for x, t in test_loader:
+        print(t.size())
+        print(t.size(0))
         targets.append(np.array(t))
     targets = torch.from_numpy(np.array(targets))
-
+    print(targets.size())
     logitsSof = []
     logits = []
     for n in range(nModelos):
