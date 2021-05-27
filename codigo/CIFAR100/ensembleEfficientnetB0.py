@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
     logits = []
     for n in range(nModelos):
-        model = EfficientNetB0()
+        model = EfficientNetB0(100)
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))

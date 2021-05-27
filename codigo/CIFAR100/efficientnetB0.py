@@ -47,7 +47,7 @@ def seed_worker(worker_id):
 def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
     loss = nn.CrossEntropyLoss()
     torch.manual_seed(seed)
-    model=EfficientNetB0()
+    model=EfficientNetB0(100)
     model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
     path = path + "_"+str(nModelo+1) + '.pt'
     for e in range(nEpocas):
