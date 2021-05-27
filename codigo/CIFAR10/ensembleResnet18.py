@@ -96,11 +96,8 @@ if __name__ == '__main__':
     #almacenamos targets del dataset
     targets = []
     for x, t in test_loader:
-        print(t.size())
-        print(t.size(0))
-        targets.append(np.array(t))
+        targets.append(np.array(t[0]))
     targets = torch.from_numpy(np.array(targets))
-    print(targets.size())
     logitsSof = []
     logits = []
     for n in range(nModelos):
@@ -123,7 +120,7 @@ if __name__ == '__main__':
     for logit in logits:
         print(logit.size())
         print(targets.size())
-        calibracion(logit, n, targets)
+        calibracion(logit[-1], n, targets)
         n+=1
 
 
