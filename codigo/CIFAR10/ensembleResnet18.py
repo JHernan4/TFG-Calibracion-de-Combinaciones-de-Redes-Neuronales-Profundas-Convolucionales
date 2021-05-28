@@ -36,6 +36,7 @@ def explotation(model, testLoader, n, path):
     path =  path + "_"+str(n+1) + '.pt'
     with torch.no_grad():
         correct,total,ECE,MCE,BRIER,NNL=0.0,0.0,0.0,0.0,0.0,0.0
+        counter=0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
@@ -46,10 +47,11 @@ def explotation(model, testLoader, n, path):
             correct+=(t==index).sum().float()
             calibrationMeasures = CalculaCalibracion(logit, t)
             ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
+            counter+=1
 
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/total), 100*(MCE/total), BRIER/total, NNL/total))
+    print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter))
     logitsSof = np.array(logitsSof)
     return logitsSof
 
@@ -73,6 +75,8 @@ def avgEnsemble(logits, testLoader):
         for i in range(len(logits[n])):
             avgLogits[i]+=logits[n][i]/len(logits)
     
+    targets = []
+
     with torch.no_grad():
         correct,total=0,0
         i=0
@@ -82,8 +86,14 @@ def avgEnsemble(logits, testLoader):
             index=torch.argmax(avgLogits[i],1)
             correct+=(t==index.cuda()).sum().float()
             i=i+1
-
-    return correct/total
+            targets.append(t)
+    correct,total,ECE,MCE,BRIER,NNL=0.0,0.0,0.0,0.0,0.0,0.0
+    counter=0
+    for logit, target in zip(avgLogits, targets):
+        calibrationMeasures = CalculaCalibracion(logit, target)
+        ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
+        counter+=1
+    return correct/total, [100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter]
 
 if __name__ == '__main__':
     args = parse_args()
@@ -114,9 +124,12 @@ if __name__ == '__main__':
         logitSof = explotation(model, test_loader, n, LOGITSPATH) 
         logitsSof.append(logitSof)
 
-    avgACC = avgEnsemble(logitsSof, test_loader)
+    avgACC, avgCalibracion = avgEnsemble(logitsSof, test_loader)
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
+    print("Medidas de calibracion ensemble de {} modelos:".format(nModelos))
+    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(avgCalibracion[0], avgCalibracion[1], avgCalibracion[2], avgCalibracion[3]))
+
 
 
     
