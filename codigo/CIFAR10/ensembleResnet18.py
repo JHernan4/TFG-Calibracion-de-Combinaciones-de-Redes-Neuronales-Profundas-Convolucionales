@@ -35,29 +35,33 @@ def explotation(model, testLoader, n, path):
     logitsSof = [] #almacena los logits pasados por la Softmax para devolverlos y usarlos en el average
     path =  path + "_"+str(n+1) + '.pt'
     with torch.no_grad():
-        correct,total=0,0
+        correct,total,ECE,MCE,BRIER,NNL=0.0,0.0,0.0,0.0,0.0,0.0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
             logit = softmax(test_pred)
             logitsSof.append(logit) #meter esto en la funcion de calibracion
-            logits.append(np.array(test_pred[1], dtype=np.float32))
             index = torch.argmax(logit, 1)
             total+=t.size(0)
             correct+=(t==index).sum().float()
+            calibrationMeasures = CalculaCalibracion(logit, t)
+            ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
+
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    logits = np.array(logits)
+    print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/total), 100*(MCE/total), BRIER/total, NNL/total))
     logitsSof = np.array(logitsSof)
-    return logitsSof, logits
+    return logitsSof
 
 
-def calibracion(logits, n, targets):
+def CalculaCalibracion(logits,targets):
     ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
 
     ECE,MCE,BRIER,NNL = compute_calibration_measures(logits, targets, False, 100)
 
-    print("Medidas de calibracion modelo {}: \n\tECE: {}\n\tMCE: {}\n\BRIER: {}\n\tNNL: {}".format(n+1, ECE, MCE, BRIER, NNL))
+    return [ECE, MCE, BRIER, NNL]
+
+    
 
 
 def avgEnsemble(logits, testLoader):
@@ -107,22 +111,12 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        logitSof, logit = explotation(model, test_loader, n, LOGITSPATH) 
-        logits.append(logit)
+        logitSof = explotation(model, test_loader, n, LOGITSPATH) 
         logitsSof.append(logitSof)
 
-    logits = torch.Tensor(np.array(logits))
     avgACC = avgEnsemble(logitsSof, test_loader)
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
-
-    n=0
-    #calibracion de modelos individuales
-    for logit in logits:
-        print(logit.size())
-        print(targets.size())
-        calibracion(logit[-1], n, targets)
-        n+=1
 
 
     
