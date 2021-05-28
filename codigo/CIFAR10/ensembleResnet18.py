@@ -20,7 +20,6 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description='Parametros para configuracion del entrenamiento de las redes neuronales convolucionales')
     parser.add_argument('--nModelos', help="número de modelos que componen el emsemble", required=True, type = int)
-    parser.add_argument('--L', help="constante para modificar logits", required=True, type = int)
     args = parser.parse_args()
     return args
 
@@ -79,7 +78,6 @@ def avgEnsemble(logits, testLoader):
 
     with torch.no_grad():
         correct,total=0,0
-        i=0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             total+=t.size(0)
@@ -87,12 +85,13 @@ def avgEnsemble(logits, testLoader):
             correct+=(t==index.cuda()).sum().float()
             i=i+1
             targets.append(t)
-    correct,total,ECE,MCE,BRIER,NNL=0.0,0.0,0.0,0.0,0.0,0.0
+    ECE,MCE,BRIER,NNL=0.0,0.0,0.0,0.0
     counter=0
     for logit, target in zip(avgLogits, targets):
         calibrationMeasures = CalculaCalibracion(logit, target)
         ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
         counter+=1
+    
     return correct/total, [100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter]
 
 if __name__ == '__main__':
