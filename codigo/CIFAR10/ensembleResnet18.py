@@ -83,7 +83,7 @@ def explotation(model, testLoader, n, path):
             x,t=x.cuda(),t.cuda()
             logits=model.forward(x)
             softmax = Softmax(logits)
-            softmaxes.append(Softmax) #meter esto en la funcion de calibracion
+            softmaxes.append(softmax) #meter esto en la funcion de calibracion
             index = torch.argmax(softmax, 1)
             total+=t.size(0)
             correct+=(t==index).sum().float()
@@ -152,7 +152,7 @@ if __name__ == '__main__':
         softmaxes = explotation(model, test_loader, n, LOGITSPATH) 
         
 
-    avgACC, avgCalibracion = avgEnsemble(softmaxes, test_loader, nModelos)
+    avgACC = avgEnsemble(softmaxes, test_loader, nModelos)
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
     
