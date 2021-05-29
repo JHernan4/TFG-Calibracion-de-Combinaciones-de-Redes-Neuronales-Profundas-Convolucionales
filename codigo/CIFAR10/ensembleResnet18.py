@@ -67,7 +67,7 @@ def accuracyEnsemble(logits, labels):
         index=torch.argmax(avgLogit,1)
         correct+=(t==index).sum().float()
 
-    return correct/total
+    return correct/total, avgLogits
 
 def CalculaCalibracion(logits,labels):
     ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
@@ -75,12 +75,13 @@ def CalculaCalibracion(logits,labels):
 
     for logit, label in zip(logits, labels):
         calibrationMeasures = [compute_calibration_measures(logit, label, False, 100)]
-        ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
+        ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0][0],MCE+calibrationMeasures[0][1],BRIER+calibrationMeasures[0][2],NNL+calibrationMeasures[0][3]
         counter+=1
 
     return [ECE/counter, MCE/counter, BRIER/counter, NNL/counter]
 
-    
+
+
 
     
 
@@ -114,7 +115,10 @@ if __name__ == '__main__':
         print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
         softmaxes.append(logits)
 
-    print("Accuracy del ensemble de {} modelos: {:.3f}".format(nModelos, 100*accuracyEnsemble(softmaxes, labels)))
+    accEnsemble, avgLogits = accuracyEnsemble(softmaxes, labels)
+    print("Accuracy del ensemble de {} modelos: {:.3f}".format(nModelos, 100*accEnsemble))
+    medidasCalibracionEnsemble = CalculaCalibracion(avgLogits, labels)
+    print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionEnsemble[0]), 100*(medidasCalibracionEnsemble[1]), medidasCalibracionEnsemble[2], medidasCalibracionEnsemble[3]))
     
 
 
