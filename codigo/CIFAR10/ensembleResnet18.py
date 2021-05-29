@@ -37,9 +37,9 @@ def generarLogits(model, testLoader):
             x,t=x.cuda(),t.cuda()
             logits=model.forward(x)
             softmax = Softmax(logits)
-            softmaxes.append(softmax) #meter esto en la funcion de calibracion
+            softmaxes.append(np.array(softmax)) #meter esto en la funcion de calibracion
     
-    return softmaxes
+    return np.array(softmaxes)
 
 
 def calculaAcuracy(logits, labels):
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     print("==> Aplicando temp scaling")
 
     for n in range(nModelos):
-        softmax = torch.Tensor(np.array(softmaxes[n]))
+        softmax = torch.Tensor(softmaxes)
         logitsTemp = tempScaling(softmax)
         medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
         print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
