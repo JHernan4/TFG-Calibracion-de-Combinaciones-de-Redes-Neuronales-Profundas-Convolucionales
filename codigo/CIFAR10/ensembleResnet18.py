@@ -71,7 +71,6 @@ def accuracyEnsemble(logits, labels):
 def CalculaCalibracion(logits,labels):
     ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
     counter = 0
-
     for logit, label in zip(logits, labels):
         calibrationMeasures = [compute_calibration_measures(logit, label, False, 100)]
         ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0][0],MCE+calibrationMeasures[0][1],BRIER+calibrationMeasures[0][2],NNL+calibrationMeasures[0][3]
@@ -79,9 +78,25 @@ def CalculaCalibracion(logits,labels):
     return [ECE/counter, MCE/counter, BRIER/counter, NNL/counter]
 
 
-def tempScaling(logits):
-    temperature = nn.Parameter(torch.ones(1) * 1.5)
+def entrenaParametroT(validationData):
+    temperature = nn.Parameter(torch.ones(1) * 0.5)
     temperature = temperature.unsqueeze(1).expand(logits[0].size(0), logits[0].size(1))
+    optimizer=torch.optim.SGD(temperature,lr=0.01,momentum=0.9, max_iter=2000)
+    Loss = nn.CrossEntropyLoss()
+    def eval(logit, labels):
+        loss = Loss(logit, labels)
+        loss.backward()
+        return loss
+    
+    for x,t in validationData:
+        optimizer.step(eval(x, t))
+    
+    return temperature
+
+def tempScaling(logits, labels, validationData):
+    
+    temperature =  entrenaParametroT(validationData)      
+    print('Optimal temperature: %.3f' % temperature.item())
     logitsTemp = []
     for logit in logits:
         logit = logit * temperature
@@ -103,6 +118,8 @@ if __name__ == '__main__':
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
+    validationData = test_loader[0:1000]
+    test_loader = test_loader[1000:]
     labels=[]
     for x,t in test_loader: 
         labels.append(t)
@@ -130,7 +147,7 @@ if __name__ == '__main__':
     print("==> Aplicando temp scaling")
 
     for n in range(nModelos):
-        logitsTemp = tempScaling(softmaxes[n])
+        logitsTemp = tempScaling(softmaxes[n], labels, validationData)
         print(logitsTemp.size())
         medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
         print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
