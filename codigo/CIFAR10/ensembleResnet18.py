@@ -18,51 +18,6 @@ import os
 import random
 import argparse
 
-
-class _ECELoss(nn.Module):
-    """
-    Calculates the Expected Calibration Error of a model.
-    (This isn't necessary for temperature scaling, just a cool metric).
-    The input to this loss is the logits of a model, NOT the softmax scores.
-    This divides the confidence outputs into equally-sized interval bins.
-    In each bin, we compute the confidence gap:
-    bin_gap = | avg_confidence_in_bin - accuracy_in_bin |
-    We then return a weighted average of the gaps, based on the number
-    of samples in each bin
-    See: Naeini, Mahdi Pakdaman, Gregory F. Cooper, and Milos Hauskrecht.
-    "Obtaining Well Calibrated Probabilities Using Bayesian Binning." AAAI.
-    2015.
-    """
-    def __init__(self, n_bins=15):
-        """
-        n_bins (int): number of confidence interval bins
-        """
-        super(_ECELoss, self).__init__()
-        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
-        self.bin_lowers = bin_boundaries[:-1]
-        self.bin_uppers = bin_boundaries[1:]
-
-    def forward(self, logits, labels):
-        softmaxes = nn.softmax(logits, dim=1)
-        confidences, predictions = torch.max(softmaxes, 1)
-        accuracies = predictions.eq(labels)
-
-        ece = torch.zeros(1, device=logits.device)
-        for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
-            # Calculated |confidence - accuracy| in each bin
-            in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
-            prop_in_bin = in_bin.float().mean()
-            if prop_in_bin.item() > 0:
-                accuracy_in_bin = accuracies[in_bin].float().mean()
-                avg_confidence_in_bin = confidences[in_bin].mean()
-                ece += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
-
-        return ece
-
-
-
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Parametros para configuracion del entrenamiento de las redes neuronales convolucionales')
     parser.add_argument('--nModelos', help="número de modelos que componen el emsemble", required=True, type = int)
@@ -74,28 +29,45 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-def explotation(model, testLoader, n, path):
-    softmax = nn.Softmax(dim=1)
-    logits = [] #para guardar los logits del modelo 
-    logitsSof = [] #almacena los logits pasados por la Softmax para devolverlos y usarlos en el average
-    path =  path + "_"+str(n+1) + '.pt'
+
+def generarLogits(model, testLoader):
+    Softmax = nn.Softmax(dim=1)
+    softmaxes = [] 
     with torch.no_grad():
-        correct,total=0,0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
-            test_pred=model.forward(x)
-            logit = softmax(test_pred)
-            logitsSof.append(logit) #meter esto en la funcion de calibracion
-            logits.append(np.array(test_pred[1], dtype=np.float32))
-            index = torch.argmax(logit, 1)
-            total+=t.size(0)
-            correct+=(t==index).sum().float()
+            logits=model.forward(x)
+            softmax = Softmax(logits)
+            softmaxes.append(softmax) #meter esto en la funcion de calibracion
     
-    print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    logits = np.array(logits)
-    logitsSof = np.array(logitsSof)
-    return logitsSof, logits
+    return softmaxes
 
+
+def calculaAcuracy(logits, labels):
+    total, correct = 0,0
+    for logit, t in zip(logits, labels):
+        index = torch.argmax(logit, 1)
+        total+=t.size(0)
+        correct+=(t==index).sum().float()
+    
+    return correct/total
+
+def accuracyEnsemble(logits, labels):
+    avgLogits = []
+    for i in range(len(logits[0])):
+        avgLogits.append(logits[0][i]/len(logits))
+    
+    for n in range(1, len(logits)):
+        for i in range(len(logits[n])):
+            avgLogits[i]+=logits[n][i]/len(logits)
+
+    correct,total=0,0
+    for avgLogit, t in zip(avgLogits, labels):
+        total+=t.size(0)
+        index=torch.argmax(avgLogit,1)
+        correct+=(t==index.cuda()).sum().float()
+
+    return correct/total
 
 def CalculaCalibracion(logits,targets, n):
     ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
@@ -109,31 +81,10 @@ def CalculaCalibracion(logits,targets, n):
     print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter))
 
     
-def avgEnsemble(logits, testLoader):
-    avgLogits = []
-    for i in range(len(logits[0])):
-        avgLogits.append(logits[0][i]/len(logits))
-    
-    for n in range(1, len(logits)):
-        for i in range(len(logits[n])):
-            avgLogits[i]+=logits[n][i]/len(logits)
-    
-    with torch.no_grad():
-        correct,total=0,0
-        i=0
-        for x,t in testLoader:
-            x,t=x.cuda(),t.cuda()
-            total+=t.size(0)
-            index=torch.argmax(avgLogits[i],1)
-            correct+=(t==index.cuda()).sum().float()
-            i=i+1
-
-    return correct/total
 
 if __name__ == '__main__':
     args = parse_args()
     PATH = './checkpointResnet18/checkpoint_resnet18'
-    LOGITSPATH = './logitsResnet18/logits_resnet18'
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
@@ -142,6 +93,10 @@ if __name__ == '__main__':
     
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
+
+    labels=[]
+    for x,t in test_loader: 
+        labels.append(t)
     
     softmaxes = []
     for n in range(nModelos):
@@ -150,12 +105,12 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        softmaxes = explotation(model, test_loader, n, LOGITSPATH) 
-        
+        logits = generarLogits(model, test_loader)
+        acc = calculaAcuracy(logits, labels)
+        print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
+        softmaxes.append(logits)
 
-    avgACC = avgEnsemble(softmaxes, test_loader)
-
-    print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
+    print("Accuracy del ensemble de {} modelos: {}".format(nModelos, 100*accuracyEnsemble(softmaxes, labels)))
     
 
 
