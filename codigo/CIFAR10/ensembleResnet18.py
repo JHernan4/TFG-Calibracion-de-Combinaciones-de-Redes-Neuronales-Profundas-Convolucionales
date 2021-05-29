@@ -110,16 +110,14 @@ def CalculaCalibracion(logits,targets, n):
 
 def avgEnsemble(logits, testLoader, nModelos):
     avgLogits = []
-    for i in range(len(logits[0])):
-        avgLogits.append(logits[0][i]/nModelos)
+    avgLogits.append(logits[0]/nModelos)
     
     if nModelos > 1:
         for n in range(1, nModelos):
-            for i in range(len(logits[n])):
-                avgLogits[i]+=logits[n][i]/nModelos
+                avgLogits[n]+=logits[n]/nModelos
     
     with torch.no_grad():
-        correct,total=0,0
+        correct,total,i=0,0,0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             total+=t.size(0)
