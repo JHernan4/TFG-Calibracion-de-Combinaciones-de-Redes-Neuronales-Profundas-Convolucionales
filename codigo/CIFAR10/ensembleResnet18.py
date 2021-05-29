@@ -1,3 +1,4 @@
+from typing import Counter
 import torch
 if not torch.cuda.is_available():
     print("Error al cargar GPU")
@@ -74,45 +75,35 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 def explotation(model, testLoader, n, path):
-    softmax = nn.Softmax(dim=1)
-    logits = [] #para guardar los logits del modelo 
-    logitsSof = [] #almacena los logits pasados por la Softmax para devolverlos y usarlos en el average
-    path =  path + "_"+str(n+1) + '.pt'
+    Softmax = nn.Softmax(dim=1)
+    softmaxes = [] #almacena los logits pasados por la Softmax
     with torch.no_grad():
-        correct,total,ECE,MCE,BRIER,NNL=0.0,0.0,0.0,0.0,0.0,0.0
-        counter=0
-        logits_list = []
-        targets_list = []
+        correct,total=0,0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
-            test_pred=model.forward(x)
-            logits_list.append(test_pred)
-            targets_list.append(t)
-            logit = softmax(test_pred)
-            logitsSof.append(logit) #meter esto en la funcion de calibracion
-            index = torch.argmax(logit, 1)
+            logits=model.forward(x)
+            softmax = Softmax(logits)
+            softmaxes.append(Softmax) #meter esto en la funcion de calibracion
+            index = torch.argmax(softmax, 1)
             total+=t.size(0)
             correct+=(t==index).sum().float()
-            calibrationMeasures = CalculaCalibracion(logit, t)
-            ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
-            counter+=1
-    print(torch.cat(logits_list).size())
-    print(torch.cat(targets_list))
+    
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter))
-    calibrationMeasures = CalculaCalibracion(torch.cat(logits_list), torch.cat(targets_list))
-    for i in calibrationMeasures:
-        print(i)
-    logitsSof = np.array(logitsSof)
-    return logitsSof
+    
+    
+    return softmaxes
 
 
-def CalculaCalibracion(logits,targets):
+def CalculaCalibracion(logits,targets, n):
     ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
+    counter = 0
 
-    ECE,MCE,BRIER,NNL = compute_calibration_measures(logits, targets, False, 100)
+    for logit, target in zip(logits, targets):
+        calibrationMeasures = [compute_calibration_measures(logits, targets, False, 100)] 
+        ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
+        counter+=1
 
-    return [ECE, MCE, BRIER, NNL]
+    print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter))
 
     
 
@@ -122,12 +113,11 @@ def avgEnsemble(logits, testLoader, nModelos):
     for i in range(len(logits[0])):
         avgLogits.append(logits[0][i]/nModelos)
     
-    for n in range(1, nModelos):
-        for i in range(len(logits[n])):
-            avgLogits[i]+=logits[n][i]/nModelos
+    if nModelos > 1:
+        for n in range(1, nModelos):
+            for i in range(len(logits[n])):
+                avgLogits[i]+=logits[n][i]/nModelos
     
-    targets = []
-
     with torch.no_grad():
         correct,total=0,0
         for x,t in testLoader:
@@ -135,16 +125,9 @@ def avgEnsemble(logits, testLoader, nModelos):
             total+=t.size(0)
             index=torch.argmax(avgLogits[i],1)
             correct+=(t==index.cuda()).sum().float()
-            i=i+1
-            targets.append(t)
-    ECE,MCE,BRIER,NNL=0.0,0.0,0.0,0.0
-    counter=0
-    for logit, target in zip(avgLogits, targets):
-        calibrationMeasures = CalculaCalibracion(logit, target)
-        ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
-        counter+=1
+ 
     
-    return correct/total, [100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter]
+    return correct/total
 
 if __name__ == '__main__':
     args = parse_args()
@@ -159,22 +142,20 @@ if __name__ == '__main__':
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
     
-    logitsSof = []
-    logits = []
+    softmaxes = []
     for n in range(nModelos):
         model = ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        logitSof = explotation(model, test_loader, n, LOGITSPATH) 
-        logitsSof.append(logitSof)
+        softmaxes = explotation(model, test_loader, n, LOGITSPATH) 
+        
 
-    avgACC, avgCalibracion = avgEnsemble(logitsSof, test_loader, nModelos)
+    avgACC, avgCalibracion = avgEnsemble(softmaxes, test_loader, nModelos)
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
-    print("Medidas de calibracion ensemble de {} modelos:".format(nModelos))
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(avgCalibracion[0], avgCalibracion[1], avgCalibracion[2], avgCalibracion[3]))
+    
 
 
 
