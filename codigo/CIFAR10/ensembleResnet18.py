@@ -118,10 +118,9 @@ if __name__ == '__main__':
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
-    validationData = test_loader[0:1000]
-    test_loader = test_loader[1000:]
+    validationData, testData = torch.utils.data.random_split(test_loader, [1000, 9000])
     labels=[]
-    for x,t in test_loader: 
+    for x,t in testData: 
         labels.append(t)
     
     softmaxes = []
@@ -131,7 +130,7 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        logits = generarLogits(model, test_loader)
+        logits = generarLogits(model, testData)
         softmaxes.append(logits)
         acc = calculaAcuracy(logits, labels)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
