@@ -81,7 +81,6 @@ def CalculaCalibracion(logits,labels):
 
 def tempScaling(logits):
     temperature = nn.Parameter(torch.ones(1) * 1.5)
-    temperature.unsqueeze(1).expand(logits.size(0), logits.size(1))
 
     return logits * temperature
 
@@ -126,7 +125,8 @@ if __name__ == '__main__':
     print("==> Aplicando temp scaling")
 
     for n in range(nModelos):
-        logitsTemp = tempScaling(softmaxes[n])
+        softmax = torch.Tensor(np.array(softmaxes[n]))
+        logitsTemp = tempScaling(softmax)
         medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
         print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
 
