@@ -48,7 +48,7 @@ def calculaAcuracy(logits, labels):
     for logit, t in zip(logits, labels):
         index = torch.argmax(logit, 1)
         total+=t.size(0)
-        correct+=(t.cpu()==index.cup()).sum().float()
+        correct+=(t==index).sum().float()
     
     return correct/total
 
@@ -65,7 +65,7 @@ def accuracyEnsemble(logits, labels):
     for avgLogit, t in zip(avgLogits, labels):
         total+=t.size(0)
         index=torch.argmax(avgLogit,1)
-        correct+=(t.cpu()==index.cpu()).sum().float()
+        correct+=(t==index).sum().float()
 
     return correct/total
 
@@ -74,7 +74,7 @@ def CalculaCalibracion(logits,labels):
     counter = 0
 
     for logit, label in zip(logits, labels):
-        calibrationMeasures = [compute_calibration_measures(logit, label, False, 100)] 
+        calibrationMeasures = [compute_calibration_measures(logit, label, False, 100)]
         ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
         counter+=1
 
@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     labels=[]
     for x,t in test_loader: 
-        labels.append(t)
+        labels.append(t.cuda())
     
     softmaxes = []
     for n in range(nModelos):
