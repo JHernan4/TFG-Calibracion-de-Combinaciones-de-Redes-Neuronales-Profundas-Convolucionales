@@ -81,8 +81,13 @@ def CalculaCalibracion(logits,labels):
 
 def tempScaling(logits):
     temperature = nn.Parameter(torch.ones(1) * 1.5)
-    temperature = temperature.unsqueeze(1).expand(logits.size(0), logits.size(1))
-    return logits * temperature
+    temperature = temperature.unsqueeze(1).expand(logits[0].size(0), logits[0].size(1))
+    logitsTemp = []
+    for logit in logits:
+        logit = logit * temperature
+        logitsTemp.append(np.array(logit))
+    return torch.Tensor(np.array(logitsTemp))
+    
 
     
 
