@@ -75,23 +75,26 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 def explotation(model, testLoader, n, path):
-    Softmax = nn.Softmax(dim=1)
-    softmaxes = [] #almacena los logits pasados por la Softmax
+    softmax = nn.Softmax(dim=1)
+    logits = [] #para guardar los logits del modelo 
+    logitsSof = [] #almacena los logits pasados por la Softmax para devolverlos y usarlos en el average
+    path =  path + "_"+str(n+1) + '.pt'
     with torch.no_grad():
         correct,total=0,0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
-            logits=model.forward(x)
-            softmax = Softmax(logits)
-            softmaxes.append(softmax) #meter esto en la funcion de calibracion
-            index = torch.argmax(softmax, 1)
+            test_pred=model.forward(x)
+            logit = softmax(test_pred)
+            logitsSof.append(logit) #meter esto en la funcion de calibracion
+            logits.append(np.array(test_pred[1], dtype=np.float32))
+            index = torch.argmax(logit, 1)
             total+=t.size(0)
             correct+=(t==index).sum().float()
     
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
-    
-    
-    return softmaxes
+    logits = np.array(logits)
+    logitsSof = np.array(logitsSof)
+    return logitsSof, logits
 
 
 def CalculaCalibracion(logits,targets, n):
@@ -106,25 +109,25 @@ def CalculaCalibracion(logits,targets, n):
     print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter))
 
     
-
-
-def avgEnsemble(logits, testLoader, nModelos):
+def avgEnsemble(logits, testLoader):
     avgLogits = []
-    avgLogits.append(logits[0]/nModelos)
+    for i in range(len(logits[0])):
+        avgLogits.append(logits[0][i]/len(logits))
     
-    if nModelos > 1:
-        for n in range(1, nModelos):
-                avgLogits[n]+=logits[n]/nModelos
+    for n in range(1, len(logits)):
+        for i in range(len(logits[n])):
+            avgLogits[i]+=logits[n][i]/len(logits)
     
     with torch.no_grad():
-        correct,total,i=0,0,0
+        correct,total=0,0
+        i=0
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             total+=t.size(0)
             index=torch.argmax(avgLogits[i],1)
             correct+=(t==index.cuda()).sum().float()
- 
-    
+            i=i+1
+
     return correct/total
 
 if __name__ == '__main__':
@@ -150,7 +153,7 @@ if __name__ == '__main__':
         softmaxes = explotation(model, test_loader, n, LOGITSPATH) 
         
 
-    avgACC = avgEnsemble(softmaxes, test_loader, nModelos)
+    avgACC = avgEnsemble(softmaxes, test_loader)
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
     
