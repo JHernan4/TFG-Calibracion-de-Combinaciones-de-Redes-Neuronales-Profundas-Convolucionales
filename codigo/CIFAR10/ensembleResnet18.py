@@ -118,9 +118,9 @@ if __name__ == '__main__':
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
-    validationData, testData = torch.utils.data.random_split(test_loader, [1000, 9000])
+    validationData, testData = torch.utils.data.random_split(test_loader, [10, 90])
     labels=[]
-    for x,t in testData: 
+    for x,t in testData:
         labels.append(t)
     
     softmaxes = []
