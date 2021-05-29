@@ -100,6 +100,9 @@ def explotation(model, testLoader, n, path):
     print(torch.cat(targets_list))
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
     print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter))
+    calibrationMeasures = CalculaCalibracion(torch.cat(logits_list), torch.cat(targets_list))
+    for i in calibrationMeasures:
+        print(i)
     logitsSof = np.array(logitsSof)
     return logitsSof
 
