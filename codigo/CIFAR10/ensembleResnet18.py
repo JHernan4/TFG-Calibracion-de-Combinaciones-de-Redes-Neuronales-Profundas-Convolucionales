@@ -36,9 +36,13 @@ def explotation(model, testLoader, n, path):
     with torch.no_grad():
         correct,total,ECE,MCE,BRIER,NNL=0.0,0.0,0.0,0.0,0.0,0.0
         counter=0
+        logits_list = []
+        targets_list = []
         for x,t in testLoader:
             x,t=x.cuda(),t.cuda()
             test_pred=model.forward(x)
+            logits_list.append(test_pred)
+            targets_list.append(t)
             logit = softmax(test_pred)
             logitsSof.append(logit) #meter esto en la funcion de calibracion
             index = torch.argmax(logit, 1)
@@ -47,8 +51,12 @@ def explotation(model, testLoader, n, path):
             calibrationMeasures = CalculaCalibracion(logit, t)
             ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
             counter+=1
-
     
+    logits = torch.cat(logits_list).cuda()
+    labels = torch.cat(targets_list).cuda()
+    nll_criterion = nn.CrossEntropyLoss().cuda()
+    before_temperature_nll = nll_criterion(logits, labels).item()
+    print("NLL alternativo: {}".format(before_temperature_nll))
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
     print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter))
     logitsSof = np.array(logitsSof)
