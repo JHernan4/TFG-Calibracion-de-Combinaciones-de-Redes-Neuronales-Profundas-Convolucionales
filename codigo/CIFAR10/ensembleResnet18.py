@@ -48,7 +48,7 @@ def calculaAcuracy(logits, labels):
     for logit, t in zip(logits, labels):
         index = torch.argmax(logit, 1)
         total+=t.size(0)
-        correct+=(t==index).sum().float()
+        correct+=(t.cpu()==index.cup()).sum().float()
     
     return correct/total
 
@@ -65,20 +65,22 @@ def accuracyEnsemble(logits, labels):
     for avgLogit, t in zip(avgLogits, labels):
         total+=t.size(0)
         index=torch.argmax(avgLogit,1)
-        correct+=(t==index.cuda()).sum().float()
+        correct+=(t.cpu()==index.cpu()).sum().float()
 
     return correct/total
 
-def CalculaCalibracion(logits,targets, n):
+def CalculaCalibracion(logits,labels):
     ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
     counter = 0
 
-    for logit, target in zip(logits, targets):
-        calibrationMeasures = [compute_calibration_measures(logits, targets, False, 100)] 
+    for logit, label in zip(logits, labels):
+        calibrationMeasures = [compute_calibration_measures(logit, label, False, 100)] 
         ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
         counter+=1
 
-    print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter))
+    return [ECE/counter, MCE/counter, BRIER/counter, NNL/counter]
+
+    
 
     
 
@@ -108,9 +110,11 @@ if __name__ == '__main__':
         logits = generarLogits(model, test_loader)
         acc = calculaAcuracy(logits, labels)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
+        medidasCalibracion = CalculaCalibracion(logits, labels)
+        print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
         softmaxes.append(logits)
 
-    print("Accuracy del ensemble de {} modelos: {}".format(nModelos, 100*accuracyEnsemble(softmaxes, labels)))
+    print("Accuracy del ensemble de {} modelos: {:.3f}".format(nModelos, 100*accuracyEnsemble(softmaxes, labels)))
     
 
 
