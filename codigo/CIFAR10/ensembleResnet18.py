@@ -1,4 +1,3 @@
-from typing import Counter
 import torch
 if not torch.cuda.is_available():
     print("Error al cargar GPU")
@@ -77,11 +76,14 @@ def CalculaCalibracion(logits,labels):
         calibrationMeasures = [compute_calibration_measures(logit, label, False, 100)]
         ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0][0],MCE+calibrationMeasures[0][1],BRIER+calibrationMeasures[0][2],NNL+calibrationMeasures[0][3]
         counter+=1
-
     return [ECE/counter, MCE/counter, BRIER/counter, NNL/counter]
 
 
+def tempScaling(logits):
+    temperature = nn.Parameter(torch.ones(1) * 1.5)
+    temperature.unsqueeze(1).expand(logits.size(0), logits.size(1))
 
+    return logits * temperature
 
     
 
@@ -109,17 +111,25 @@ if __name__ == '__main__':
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
         logits = generarLogits(model, test_loader)
+        softmaxes.append(logits)
         acc = calculaAcuracy(logits, labels)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
         medidasCalibracion = CalculaCalibracion(logits, labels)
         print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
-        softmaxes.append(logits)
+        
 
     accEnsemble, avgLogits = accuracyEnsemble(softmaxes, labels)
     print("Accuracy del ensemble de {} modelos: {:.3f}".format(nModelos, 100*accEnsemble))
     medidasCalibracionEnsemble = CalculaCalibracion(avgLogits, labels)
     print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionEnsemble[0]), 100*(medidasCalibracionEnsemble[1]), medidasCalibracionEnsemble[2], medidasCalibracionEnsemble[3]))
     
+    print("==> Aplicando temp scaling")
+
+    for n in range(nModelos):
+        logitsTemp = tempScaling(softmaxes[n])
+        medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
+        print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
+
 
 
 
