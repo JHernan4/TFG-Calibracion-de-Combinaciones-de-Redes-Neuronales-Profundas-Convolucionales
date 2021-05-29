@@ -96,15 +96,8 @@ def explotation(model, testLoader, n, path):
             calibrationMeasures = CalculaCalibracion(logit, t)
             ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0],MCE+calibrationMeasures[1],BRIER+calibrationMeasures[2],NNL+calibrationMeasures[3]
             counter+=1
-    
-    logits = torch.cat(logits_list).cuda()
-    labels = torch.cat(targets_list).cuda()
-    nll_criterion = nn.CrossEntropyLoss().cuda()
-    ece_criterion = _ECELoss().cuda()
-    before_temperature_ece = ece_criterion(logits, labels).item()
-    before_temperature_nll = nll_criterion(logits, labels).item()
-    print("NLL alternativo: {}".format(before_temperature_nll))
-    print("ECE alternativo: {}".format(before_temperature_ece))
+    print(torch.cat(logits_list).size())
+    print(torch.cat(targets_list))
     print("Modelo {}: accuracy {:.3f}".format(n+1, 100*(correct/total)))
     print("Medidas de calibracion modelo {}: \n\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNNL: {:.2f}".format(n+1, 100*(ECE/counter), 100*(MCE/counter), BRIER/counter, NNL/counter))
     logitsSof = np.array(logitsSof)
@@ -121,14 +114,14 @@ def CalculaCalibracion(logits,targets):
     
 
 
-def avgEnsemble(logits, testLoader):
+def avgEnsemble(logits, testLoader, nModelos):
     avgLogits = []
     for i in range(len(logits[0])):
-        avgLogits.append(logits[0][i]/len(logits))
+        avgLogits.append(logits[0][i]/nModelos)
     
-    for n in range(1, len(logits)):
+    for n in range(1, nModelos):
         for i in range(len(logits[n])):
-            avgLogits[i]+=logits[n][i]/len(logits)
+            avgLogits[i]+=logits[n][i]/nModelos
     
     targets = []
 
@@ -163,11 +156,6 @@ if __name__ == '__main__':
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
     test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
     
-    #almacenamos targets del dataset
-    targets = []
-    for x, t in test_loader:
-        targets.append(np.array(t[0]))
-    targets = torch.from_numpy(np.array(targets))
     logitsSof = []
     logits = []
     for n in range(nModelos):
@@ -179,7 +167,7 @@ if __name__ == '__main__':
         logitSof = explotation(model, test_loader, n, LOGITSPATH) 
         logitsSof.append(logitSof)
 
-    avgACC, avgCalibracion = avgEnsemble(logitsSof, test_loader)
+    avgACC, avgCalibracion = avgEnsemble(logitsSof, test_loader, nModelos)
 
     print("Ensemble de {} modelos: {:.3f}".format(nModelos, 100*avgACC))
     print("Medidas de calibracion ensemble de {} modelos:".format(nModelos))
