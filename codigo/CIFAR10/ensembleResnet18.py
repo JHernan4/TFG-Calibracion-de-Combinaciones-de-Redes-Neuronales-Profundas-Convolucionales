@@ -79,17 +79,18 @@ def CalculaCalibracion(logits,labels):
 
 
 def entrenaParametroT(validationData):
-    temperature = nn.Parameter(torch.ones(1) * 0.5)
-    temperature = temperature.unsqueeze(1).expand(logits[0].size(0), logits[0].size(1))
-    optimizer=torch.optim.SGD(temperature,lr=0.01,momentum=0.9, max_iter=2000)
-    Loss = nn.CrossEntropyLoss()
-    def eval(logit, labels):
-        loss = Loss(logit, labels)
-        loss.backward()
-        return loss
+    temperature = nn.Parameter(torch.ones(logits[0].size(0), logits[0].size(1)) * 0.5)
+    optimizer=torch.optim.SGD([temperature],lr=0.01,momentum=0.9)
+    loss = nn.CrossEntropyLoss()
     
     for x,t in validationData:
-        optimizer.step(eval(x, t))
+        x,t=x.cuda(),t.cuda()
+        o=model.forward(x)*temperature
+        cost=loss(o,t)
+        cost.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+        
     
     return temperature
 
