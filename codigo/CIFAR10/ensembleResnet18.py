@@ -85,7 +85,7 @@ def entrenaParametroT(logits, labels):
     loss = nn.CrossEntropyLoss()
     def eval():
         for logit in logits:
-            o = loss(temperature*logits, labels)
+            o = loss(temperature*logit, labels)
             o.backward()
         return o
     optimizer.step(eval)
