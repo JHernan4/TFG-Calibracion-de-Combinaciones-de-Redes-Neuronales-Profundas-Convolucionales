@@ -83,7 +83,7 @@ def entrenaParametroT(model, validationData):
     temperature = nn.Parameter(torch.ones(logits[0].size(0), logits[0].size(1)) * 0.5)
     optimizer=torch.optim.SGD([temperature],lr=0.01,momentum=0.9)
     loss = nn.CrossEntropyLoss()
-    counter, ce=0
+    counter, ce=0,0
     for e in range(2000):
         for x,t in validationData:
             x,t=x.cuda(),t.cuda()
@@ -131,11 +131,13 @@ if __name__ == '__main__':
         labels.append(t)
     
     softmaxes = []
+    modelos = []
     for n in range(nModelos):
         model = ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
+        modelos.append(model)
         model.eval()
         logits = generarLogits(model, test_loader)
         softmaxes.append(logits)
@@ -152,8 +154,8 @@ if __name__ == '__main__':
     
     print("==> Aplicando temp scaling")
 
-    for n in range(nModelos):
-        logitsTemp = tempScaling(softmaxes[n], labels, test_loader)
+    for n, modelo in enumerate(modelos):
+        logitsTemp = tempScaling(softmaxes[n], model, test_loader)
         medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
         print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
 
