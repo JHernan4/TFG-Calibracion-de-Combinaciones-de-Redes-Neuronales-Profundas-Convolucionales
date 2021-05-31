@@ -30,6 +30,18 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
+def generarLogitsValidacion(model, valLoader):
+    Softmax = nn.Softmax(dim=1)
+    softmaxes = [] 
+    with torch.no_grad():
+        for x,t in valLoader:
+            x,t=x.cuda(),t.cuda()
+            logits=model.forward(x)
+            softmax = Softmax(logits)
+            softmaxes.append(np.array(softmax.cpu())) #meter esto en la funcion de calibracion
+    
+    return torch.Tensor(np.array(softmaxes))
+
 def generarLogits(model, testLoader):
     Softmax = nn.Softmax(dim=1)
     softmaxes = [] 
@@ -80,8 +92,8 @@ def CalculaCalibracion(logits,labels):
 
 
 def entrenaParametroT(logits, labels):
-    temperature = nn.Parameter(torch.ones(100, 10) * 0.5)
-    optimizer=torch.optim.LBFGS([temperature],lr=0.01,max_iter=2000)
+    temperature = nn.Parameter(torch.ones(100, 10) * 1.5)
+    optimizer=torch.optim.LBFGS([temperature],lr=0.01,max_iter=50)
     loss = nn.CrossEntropyLoss()
     def eval():
         for logit in logits:
@@ -125,15 +137,15 @@ if __name__ == '__main__':
         labels.append(t)
     
     softmaxes = []
-    modelos = []
+    softmaxesVal = []
     for n in range(nModelos):
         model = ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
-        modelos.append(model)
         model.eval()
         logits = generarLogits(model, test_loader)
+        softmaxesVal.append(generarLogitsValidacion(model, val_loader))
         softmaxes.append(logits)
         acc = calculaAcuracy(logits, labels)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
@@ -148,8 +160,8 @@ if __name__ == '__main__':
     
     print("==> Aplicando temp scaling")
 
-    for logits in softmaxes:
-        logitsTemp = tempScaling(logits, labels)
+    for logitsVal in softmaxesVal:
+        logitsTemp = tempScaling(logitsVal, labels)
         medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
         print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
 
