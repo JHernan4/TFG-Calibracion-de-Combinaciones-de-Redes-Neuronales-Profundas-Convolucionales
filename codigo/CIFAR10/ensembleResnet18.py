@@ -40,9 +40,9 @@ def procesaValidacion(model, valLoader):
             logits=model.forward(x)
             softmax = Softmax(logits)
             softmaxes.append(np.array(softmax.cpu())) #meter esto en la funcion de calibracion
-            labels.append(np.array(t))
+            labels.append(t.cpu())
     
-    return torch.Tensor(np.array(softmaxes)), torch.Tensor(np.array(labels))
+    return torch.Tensor(np.array(softmaxes)), labels
 
 def generarLogits(model, testLoader):
     Softmax = nn.Softmax(dim=1)
