@@ -96,17 +96,15 @@ def CalculaCalibracion(logits,labels):
 
 #crea y optimiaza un parametro T para el Temp Scal
 def entrenaParametroT(logits, labels):
-    temperature = nn.Parameter(torch.ones(logits[0].size(0), logits[0].size(1)) * 1.5)
-    optimizer=torch.optim.SGD([temperature],lr=0.001, momentum=0.9)
+    temperature = nn.Parameter(torch.ones(1) * 1.5)
+    optimizer = torch.optim.LBFGS([temperature], lr=0.01, max_iter=50)
     loss = nn.CrossEntropyLoss()
-
-    for e in range(2000):
-        for logit,label in zip (logits, labels):
-            o = loss(logit / temperature, label)
-            o.backward()
-            optimizer.step()
-            optimizer.zero_grad()
-
+    def eval():
+        cost = loss(logits * temperature.unsqueeze(1).expand(logits.size(0), logits.size(1)), labels)
+        cost.backward()
+        return cost
+    optimizer.step(eval)
+    print('Optimal temperature: %.3f' % temperature.item())
     return temperature
     
 #realiza el Temp Scal
