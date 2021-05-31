@@ -119,11 +119,9 @@ if __name__ == '__main__':
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=True,transform=cifar10_transforms_test)
-    indices = torch.randperm(len(cifar10_test))
-    val_indices = indices[:len(indices) - testSize]
-    test_indices = indices[len(indices) - testSize:]
-    test_loader = torch.utils.data.DataLoader(cifar10_test,pin_memory=True, batch_size=100, sampler = SubsetRandomSampler(test_indices))
-    val_loader = torch.utils.data.DataLoader(cifar10_test,pin_memory=True, batch_size=100, sampler = SubsetRandomSampler(val_indices))
+    val_set, test_set = torch.utils.data.random_split(cifar10_test, [1000, 9000])
+    test_loader = torch.utils.data.DataLoader(test_set, cifar10_test,pin_memory=True, batch_size=100)
+    val_loader = torch.utils.data.DataLoader(val_set, cifar10_test,pin_memory=True, batch_size=100)
 
     labels=[]
     for x,t in test_loader: 
