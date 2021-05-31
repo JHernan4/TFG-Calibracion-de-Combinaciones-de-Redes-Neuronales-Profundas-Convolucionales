@@ -102,7 +102,7 @@ def entrenaParametroT(logits, labels):
 
     for e in range(2000):
         for logit,label in zip (logits, labels):
-            o = loss(temperature*logit, label)
+            o = loss(logit / temperature, label)
             o.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -110,12 +110,12 @@ def entrenaParametroT(logits, labels):
     return temperature
     
 #realiza el Temp Scal
-def tempScaling(logits, labels):
+def tempScaling(logitsVal, logits, labels):
     
-    temperature = entrenaParametroT(logits, labels)
+    temperature = entrenaParametroT(logitsVal,labels)
     logitsTemp = []
     for logit in logits:
-        logit = logit * temperature
+        logit = logit / temperature
         logitsTemp.append(logit.detach().numpy())
     return torch.Tensor(np.array(logitsTemp))
     
@@ -169,8 +169,8 @@ if __name__ == '__main__':
     
     print("==> Aplicando temp scaling")
 
-    for logitsVal in softmaxesVal:
-        logitsTemp = tempScaling(logitsVal, labelsVal)
+    for logitsVal, logits in zip(softmaxesVal, softmaxes):
+        logitsTemp = tempScaling(logitsVal, logits, labelsVal)
         medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
         print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
 
