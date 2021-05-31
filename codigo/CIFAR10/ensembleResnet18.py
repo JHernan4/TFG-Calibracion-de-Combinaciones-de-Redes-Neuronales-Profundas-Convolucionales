@@ -84,8 +84,9 @@ def entrenaParametroT(logits, labels):
     optimizer=torch.optim.LBFGS([temperature],lr=0.01,max_iter=2000)
     loss = nn.CrossEntropyLoss()
     def eval():
-        o = loss(temperature*logits, labels)
-        o.backward()
+        for logit in logits:
+            o = loss(temperature*logits, labels)
+            o.backward()
         return o
     optimizer.step(eval)
 
