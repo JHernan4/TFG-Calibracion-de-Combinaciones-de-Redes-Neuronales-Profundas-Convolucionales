@@ -5,6 +5,7 @@ if not torch.cuda.is_available():
 import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
+from torch.utils.data.sampler import SubsetRandomSampler
 from torch import nn
 import sys
 sys.path.append("../models")
@@ -108,6 +109,7 @@ def tempScaling(logits, labels, validationData):
     
 
 if __name__ == '__main__':
+    testSize=9000
     args = parse_args()
     PATH = './checkpointResnet18/checkpoint_resnet18'
     nModelos = args.nModelos
@@ -116,8 +118,12 @@ if __name__ == '__main__':
     cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     
-    cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
-    test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
+    cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=True,transform=cifar10_transforms_test)
+    indices = torch.randperm(len(cifar10_test))
+    val_indices = indices[:len(indices) - testSize]
+    test_indices = indices[len(indices) - testSize:]
+    test_loader = torch.utils.data.DataLoader(cifar10_test,pin_memory=True, batch_size=100, sampler = SubsetRandomSampler(test_indices))
+    val_loader = torch.utils.data.DataLoader(cifar10_test,pin_memory=True, batch_size=100, sampler = SubsetRandomSampler(val_indices))
 
     labels=[]
     for x,t in test_loader: 
