@@ -146,10 +146,9 @@ if __name__ == '__main__':
     labelsVal = []
     for x, t in val_loader:
         labelsVal.append(t)
-    
+        
     softmaxes = []
     softmaxesVal = []
-    labelsVal = []
     for n in range(nModelos):
         model = ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
