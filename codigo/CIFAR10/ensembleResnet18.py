@@ -5,7 +5,6 @@ if not torch.cuda.is_available():
 import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
-from torch.utils.data.sampler import SubsetRandomSampler
 from torch import nn
 import sys
 sys.path.append("../models")
@@ -108,7 +107,6 @@ def tempScaling(logits, labels, validationData):
     
 
 if __name__ == '__main__':
-    tamTest = 9000
     args = parse_args()
     PATH = './checkpointResnet18/checkpoint_resnet18'
     nModelos = args.nModelos
@@ -118,14 +116,8 @@ if __name__ == '__main__':
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=False,transform=cifar10_transforms_test)
-    
+    test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers)
 
-    indices = torch.randperm(len(cifar10_test))
-    validationIndices = indices[:len(indices) - tamTest]
-    testIndices = valid_indices = indices[len(indices) - tamTest]
-
-    validation_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, sampler=SubsetRandomSampler(validationIndices))
-    test_loader = torch.utils.data.DataLoader(cifar10_test,batch_size=100,shuffle=False,num_workers=workers, sampler=SubsetRandomSampler(testIndices))
     labels=[]
     for x,t in test_loader: 
         labels.append(t)
@@ -153,8 +145,7 @@ if __name__ == '__main__':
     print("==> Aplicando temp scaling")
 
     for n in range(nModelos):
-        logitsTemp = tempScaling(softmaxes[n], labels, validationData)
-        print(logitsTemp.size())
+        logitsTemp = tempScaling(softmaxes[n], labels, test_loader)
         medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
         print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
 
