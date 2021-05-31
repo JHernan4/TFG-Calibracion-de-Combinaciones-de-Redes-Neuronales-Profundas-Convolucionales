@@ -79,26 +79,29 @@ def CalculaCalibracion(logits,labels):
     return [ECE/counter, MCE/counter, BRIER/counter, NNL/counter]
 
 
-def entrenaParametroT(validationData):
+def entrenaParametroT(model, validationData):
     temperature = nn.Parameter(torch.ones(logits[0].size(0), logits[0].size(1)) * 0.5)
     optimizer=torch.optim.SGD([temperature],lr=0.01,momentum=0.9)
     loss = nn.CrossEntropyLoss()
+    counter, ce=0
+    for e in range(2000):
+        for x,t in validationData:
+            x,t=x.cuda(),t.cuda()
+            o=model.forward(x)*temperature.cuda()
+            cost=loss(o,t)
+            cost.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            ce+=cost.data
+            counter+=1
+        ce = ce/counter
     
-    for x,t in validationData:
-        x,t=x.cuda(),t.cuda()
-        o=model.forward(x)*temperature.cuda()
-        cost=loss(o,t)
-        cost.backward()
-        optimizer.step()
-        optimizer.zero_grad()
-        
-    
-    return temperature
+    return temperature, ce
 
-def tempScaling(logits, labels, validationData):
+def tempScaling(logits, model, validationData):
     
-    temperature =  entrenaParametroT(validationData)      
-    print('Optimal temperature: %.3f' % temperature.item())
+    temperature, ce =  entrenaParametroT(model, validationData)      
+    print('Optimal temperature: %.3f' % ce)
     logitsTemp = []
     for logit in logits:
         logit = logit * temperature
