@@ -33,16 +33,14 @@ def seed_worker(worker_id):
 def procesaValidacion(model, valLoader):
     Softmax = nn.Softmax(dim=1)
     softmaxes = []
-    labels = [] 
     with torch.no_grad():
         for x,t in valLoader:
             x,t=x.cuda(),t.cuda()
             logits=model.forward(x)
             softmax = Softmax(logits)
             softmaxes.append(np.array(softmax.cpu())) #meter esto en la funcion de calibracion
-            labels.append(t.cpu())
     
-    return torch.Tensor(np.array(softmaxes)), labels
+    return torch.Tensor(np.array(softmaxes))
 
 #genera los logits del conjunto de test y los devuelve pasados por la softmax
 def generarLogits(model, testLoader):
@@ -146,7 +144,7 @@ if __name__ == '__main__':
     labelsVal = []
     for x, t in val_loader:
         labelsVal.append(t)
-        
+
     softmaxes = []
     softmaxesVal = []
     for n in range(nModelos):
