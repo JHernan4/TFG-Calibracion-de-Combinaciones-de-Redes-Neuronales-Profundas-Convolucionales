@@ -96,8 +96,8 @@ def CalculaCalibracion(logits,labels):
 
 #crea y optimiaza un parametro T para el Temp Scal
 def entrenaParametroT(logits, labels):
-    temperature = nn.Parameter(torch.ones(100, 10) * 1.5)
-    optimizer=torch.optim.SGD([temperature],lr=0.01)
+    temperature = nn.Parameter(torch.ones(logits[0].size(0), logits[0].size(1)) * 1.5)
+    optimizer=torch.optim.SGD([temperature],lr=0.001, momentum=0.9)
     loss = nn.CrossEntropyLoss()
 
     for e in range(2000):
