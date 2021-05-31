@@ -141,12 +141,14 @@ if __name__ == '__main__':
     accEnsemble, avgLogits = accuracyEnsemble(softmaxes, labels)
     print("Accuracy del ensemble de {} modelos: {:.3f}".format(nModelos, 100*accEnsemble))
     medidasCalibracionEnsemble = CalculaCalibracion(avgLogits, labels)
-    print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionEnsemble[0]), 100*(medidasCalibracionEnsemble[1]), medidasCalibracionEnsemble[2], medidasCalibracionEnsemble[3]))
+    print("Medidas de calibracion ensemble {} modelos: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(nModelos, 100*(medidasCalibracionEnsemble[0]), 100*(medidasCalibracionEnsemble[1]), medidasCalibracionEnsemble[2], medidasCalibracionEnsemble[3]))
     
     print("==> Aplicando temp scaling")
 
-    for n, modelo in enumerate(modelos):
-        logitsTemp = tempScaling(labels, softmaxes[n])
+    for logits in softmaxes:
+        logitsTemp = tempScaling(labels, logits)
+        for logit in logits:
+            print(logit.size())
         medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
         print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
 
