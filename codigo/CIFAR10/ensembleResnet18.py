@@ -120,8 +120,8 @@ if __name__ == '__main__':
     
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=True,transform=cifar10_transforms_test)
     val_set, test_set = torch.utils.data.random_split(cifar10_test, [1000, 9000])
-    test_loader = torch.utils.data.DataLoader(test_set, cifar10_test,pin_memory=True, batch_size=100)
-    val_loader = torch.utils.data.DataLoader(val_set, cifar10_test,pin_memory=True, batch_size=100)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=100, shuffle=False, num_workers=workers)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=100, shuffle=False, num_workers=workers)
 
     labels=[]
     for x,t in test_loader: 
