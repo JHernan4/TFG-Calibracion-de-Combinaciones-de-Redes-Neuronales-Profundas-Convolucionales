@@ -79,8 +79,8 @@ def CalculaCalibracion(logits,labels):
     return [ECE/counter, MCE/counter, BRIER/counter, NNL/counter]
 
 
-def entrenaParametroT(labels, logits):
-    temperature = nn.Parameter(torch.ones(logits[0].size(0), logits[0].size(1)) * 0.5)
+def entrenaParametroT(logits, labels):
+    temperature = nn.Parameter(torch.ones(100, 10) * 0.5)
     optimizer=torch.optim.LBFGS([temperature],lr=0.01,max_iter=2000)
     loss = nn.CrossEntropyLoss()
     def eval():
@@ -88,11 +88,13 @@ def entrenaParametroT(labels, logits):
         o.backward()
         return o
     optimizer.step(eval)
+
+    return temperature
     
 
 def tempScaling(logits, labels):
     
-    temperature = entrenaParametroT(labels, logits)
+    temperature = entrenaParametroT(logits, labels)
     logitsTemp = []
     for logit in logits:
         logit = logit * temperature
@@ -146,9 +148,7 @@ if __name__ == '__main__':
     print("==> Aplicando temp scaling")
 
     for logits in softmaxes:
-        for logit in logits:
-            print(logit.size())
-        logitsTemp = tempScaling(labels, logits)
+        logitsTemp = tempScaling(logits, labels)
         medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
         print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
 
