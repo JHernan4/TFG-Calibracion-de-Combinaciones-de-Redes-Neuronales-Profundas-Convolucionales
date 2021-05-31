@@ -18,6 +18,15 @@ import os
 import random
 import argparse
 
+def lr_scheduler(epoch):
+    if epoch < 150:
+        return 0.1
+    elif epoch < 250:
+        return 0.01
+    elif epoch < 350:
+        return 0.001
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Parametros para configuracion del entrenamiento de las redes neuronales convolucionales')
     parser.add_argument('--nModelos', help="número de modelos que componen el emsemble", required=True, type = int)
@@ -101,15 +110,17 @@ def CalculaCalibracion(logits,labels):
 #crea y optimiza un parametro T para el Temp Scal con el CONJUNTO DE VALIDACION
 def entrenaParametroT(logitsVal, labelsVal):
     temperature = nn.Parameter(torch.ones(1) * 0.1)
-    optimizer = torch.optim.SGD([temperature], lr=0.01, momentum=0.9)
     loss = nn.CrossEntropyLoss()
+    scheduler = lr_scheduler
     def eval():
         for logit, label in zip(logits, labels):
             cost = loss(logit * temperature, label)
             cost.backward()
         return cost
     for e in range(2000):
+        optimizer = torch.optim.SGD([temperature], lr=scheduler(e), momentum=0.9)
         optimizer.step(eval)
+        optimizer.zero_grad()
     print('Optimal temperature: %.3f' % temperature.item())
     return temperature
     
