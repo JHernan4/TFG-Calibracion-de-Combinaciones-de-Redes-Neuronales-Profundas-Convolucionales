@@ -146,9 +146,9 @@ if __name__ == '__main__':
     print("==> Aplicando temp scaling")
 
     for logits in softmaxes:
-        logitsTemp = tempScaling(labels, logits)
         for logit in logits:
             print(logit.size())
+        logitsTemp = tempScaling(labels, logits)
         medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
         print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
 
