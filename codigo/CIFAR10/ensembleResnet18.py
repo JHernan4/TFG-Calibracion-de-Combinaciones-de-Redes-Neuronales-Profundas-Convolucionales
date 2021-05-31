@@ -86,7 +86,7 @@ def entrenaParametroT(validationData):
     
     for x,t in validationData:
         x,t=x.cuda(),t.cuda()
-        o=model.forward(x)*temperature
+        o=model.forward(x)*temperature.cuda()
         cost=loss(o,t)
         cost.backward()
         optimizer.step()
