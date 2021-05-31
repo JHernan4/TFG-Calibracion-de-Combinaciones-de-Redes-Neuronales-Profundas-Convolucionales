@@ -29,7 +29,7 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-
+#recibe el modelo y el conjunto de validacion y devuelve los logits pasados por la softmax
 def procesaValidacion(model, valLoader):
     Softmax = nn.Softmax(dim=1)
     softmaxes = []
@@ -44,6 +44,7 @@ def procesaValidacion(model, valLoader):
     
     return torch.Tensor(np.array(softmaxes)), labels
 
+#genera los logits del conjunto de test y los devuelve pasados por la softmax
 def generarLogits(model, testLoader):
     Softmax = nn.Softmax(dim=1)
     softmaxes = [] 
@@ -56,7 +57,7 @@ def generarLogits(model, testLoader):
     
     return torch.Tensor(np.array(softmaxes))
 
-
+#calcula el % de accuracy dados unos logits y labels
 def calculaAcuracy(logits, labels):
     total, correct = 0,0
     for logit, t in zip(logits, labels):
@@ -66,6 +67,7 @@ def calculaAcuracy(logits, labels):
     
     return correct/total
 
+#calcula el accuracy de un ensemble de modelos dados los logits de todos los modelos y los labels 
 def accuracyEnsemble(logits, labels):
     avgLogits = []
     for i in range(len(logits[0])):
@@ -83,6 +85,7 @@ def accuracyEnsemble(logits, labels):
 
     return correct/total, avgLogits
 
+#dados logits y labels, calcula ECE, MCE, BRIER y NNL
 def CalculaCalibracion(logits,labels):
     ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
     counter = 0
@@ -93,6 +96,7 @@ def CalculaCalibracion(logits,labels):
     return [ECE/counter, MCE/counter, BRIER/counter, NNL/counter]
 
 
+#crea y optimiaza un parametro T para el Temp Scal
 def entrenaParametroT(logits, labels):
     temperature = nn.Parameter(torch.ones(100, 10) * 1.5)
     optimizer=torch.optim.SGD([temperature],lr=0.01)
@@ -107,7 +111,7 @@ def entrenaParametroT(logits, labels):
 
     return temperature
     
-
+#realiza el Temp Scal
 def tempScaling(logits, labels):
     
     temperature = entrenaParametroT(logits, labels)
@@ -139,6 +143,10 @@ if __name__ == '__main__':
     for x,t in test_loader: 
         labels.append(t)
     
+    labelsVal = []
+    for x, t in val_loader:
+        labelsVal.append(t)
+    
     softmaxes = []
     softmaxesVal = []
     labelsVal = []
@@ -149,9 +157,7 @@ if __name__ == '__main__':
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
         logits = generarLogits(model, test_loader)
-        s, l = procesaValidacion(model, val_loader)
-        softmaxesVal.append(s)
-        labelsVal.append(l)
+        softmaxesVal.append(procesaValidacion(model, val_loader))
         softmaxes.append(logits)
         acc = calculaAcuracy(logits, labels)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
