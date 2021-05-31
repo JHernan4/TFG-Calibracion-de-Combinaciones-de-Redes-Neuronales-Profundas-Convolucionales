@@ -158,7 +158,7 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         model.eval()
-        logits, logitsAux = generarLogits(model, test_loader)
+        logitsAux, logits = generarLogits(model, test_loader)
         softmaxesVal.append(procesaValidacion(model, val_loader))
         softmaxes.append(logits)
         logitsS.append(logitsAux)
