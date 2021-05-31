@@ -93,11 +93,11 @@ def CalculaCalibracion(logits,labels):
 
 def entrenaParametroT(logits, labels):
     temperature = nn.Parameter(torch.ones(100, 10) * 1.5)
-    optimizer=torch.optim.LBFGS([temperature],lr=0.01,max_iter=50)
+    optimizer=torch.optim.SGD([temperature],lr=0.01)
     loss = nn.CrossEntropyLoss()
     def eval():
-        for logit in logits:
-            o = loss(temperature*logit, labels)
+        for logit,label in zip (logits, labels):
+            o = loss(temperature*logit, label)
             o.backward()
         return o
     optimizer.step(eval)
