@@ -100,8 +100,9 @@ def entrenaParametroT(logits, labels):
     optimizer = torch.optim.LBFGS([temperature], lr=0.01, max_iter=50)
     loss = nn.CrossEntropyLoss()
     def eval():
-        cost = loss(logits * temperature.unsqueeze(1).expand(logits.size(0), logits.size(1)), labels)
-        cost.backward()
+        for logit, label in zip(logits, labels):
+            cost = loss(logit * temperature.unsqueeze(1).expand(logit.size(0), logit.size(1)), label)
+            cost.backward()
         return cost
     optimizer.step(eval)
     print('Optimal temperature: %.3f' % temperature.item())
