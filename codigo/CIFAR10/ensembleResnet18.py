@@ -117,7 +117,7 @@ def get_metrics(preds, labels_oneh):
     NLL = loss(preds, labels_oneh)
 
 
-  return ECE, MCE
+  return ECE, MCE, NLL
 
 
 #recibe el modelo y el conjunto de validacion y devuelve los logits pasados por la softmax
