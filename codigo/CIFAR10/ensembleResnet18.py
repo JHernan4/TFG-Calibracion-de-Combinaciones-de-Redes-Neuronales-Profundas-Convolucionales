@@ -195,9 +195,11 @@ def accuracyEnsemble(logits, labels):
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
 def CalculaCalibracion(logits,labels):
+    sm = nn.Softmax(dim=1)
     ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
     counter = 0
     for logit, label in zip(logits, labels):
+        logit = sm(logit)
         calibrationMeasures = [compute_calibration_measures(logit, label, False, 100)]
         ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0][0],MCE+calibrationMeasures[0][1],BRIER+calibrationMeasures[0][2],NNL+calibrationMeasures[0][3]
         counter+=1
@@ -294,6 +296,7 @@ if __name__ == '__main__':
         model = ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
+        modelos.append(model)
         print("Modelo {} cargado correctamente".format(n+1))
         logits = test2(model, test_loader)
         logitsModelos.append(logits)
@@ -303,7 +306,13 @@ if __name__ == '__main__':
     avgLogits = generaLogitsPromedio(logitsModelos)
     accEsemble = calculaAcuracy(avgLogits, test_labels)
     print("Accuracy ensemble de {} modelos: {:.3f}".format(n+1, 100*accEsemble))
-    
+
+    for n, model in enumerate(modelos):
+        medidasCalibracion = CalculaCalibracion(logitsModelos[n], test_labels)
+        print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
+        temperature = temperatureScaling(model, validation_loader)
+        
+
     '''
     for n in range(nModelos):
         model = ResNet18()
