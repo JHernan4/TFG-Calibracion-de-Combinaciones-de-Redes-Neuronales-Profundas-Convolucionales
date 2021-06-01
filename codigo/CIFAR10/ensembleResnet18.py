@@ -49,7 +49,7 @@ def procesarConjunto(model, dataLoader):
     
     return torch.cat(logits).cuda(), torch.cat(labels).cuda()
 
-def test(model, dataLoader, nClases=10):
+def test(model, dataLoader, nClases=10, calibracion=False, temperature=None):
     sm = nn.Softmax(dim=1)
     preds = []
     labels_oneh = []
@@ -61,6 +61,10 @@ def test(model, dataLoader, nClases=10):
         for x, t in dataLoader:
             x,t = x.cuda(), t.cuda()
             pred = model.forward(x)
+            
+            if calibracion == True and temperature is not None:
+                pred = T_scaling(pred, t)
+
             pred = sm(pred)
 
             _, predicted_cl = torch.max(pred.data, 1)
@@ -79,7 +83,7 @@ def test(model, dataLoader, nClases=10):
     preds = np.array(preds).flatten()
     labels_oneh = np.array(labels_oneh).flatten()
 
-    return preds, label_oneh, correct/counter    
+    return preds, labels_oneh, correct/counter    
 
 def calc_bins(preds, labels_oneh):
   # Assign each prediction to a bin
@@ -307,4 +311,11 @@ if __name__ == '__main__':
         logits, labels, acc = test(model, test_loader)
         print("Accuracy modelo {}: {:.2f}".format(n+1, 100*acc))
         ECE, MCE = get_metrics(logits, labels)       
-        print("ECE: {}%, MCE: {}%".format(ECE*100, MCE*100)) 
+        print("ECE: {}%, MCE: {}%".format(ECE*100, MCE*100))
+
+        t = temperatureScaling(model, validation_loader)
+        print("==> Aplicando temp scaling")
+        logits, labels, acc = test(model, test_loader, 10, True, t)
+        print("Accuracy modelo {}: {:.2f}".format(n+1, 100*acc))
+        ECE, MCE = get_metrics(logits, labels)       
+        print("ECE: {}%, MCE: {}%".format(ECE*100, MCE*100))
