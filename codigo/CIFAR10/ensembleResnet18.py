@@ -112,19 +112,48 @@ def entrenaParametroT(logitsVal, labelsVal):
             optimizer.zero_grad()
     print('Optimal temperature: %.3f' % temperature.item())
     return temperature
+
+
+def T_scaling(logits, t):
+    return torch.mul(logits, t)
     
 #realiza el Temp Scal sobre el CONJUNTO DE TEST
-def tempScaling(logitsVal, logitsTest, labelsVal):
-    Softmax = nn.Softmax(dim=1)
-    temperature = entrenaParametroT(logitsVal,labelsVal)
-    logitsTemp = []
-    for logit in logitsTest:
-        logit = logit * temperature
-        logitsTemp.append(Softmax(logit).detach().numpy())
-    return torch.Tensor(np.array(logitsTemp))
-    
+def temperatureScaling(model, validationLoader):
+    t = nn.Parameter(torch.ones(1).cuda())
+    loss = nn.CrossEntropyLoss()
+    optimizer = torch.optim.LBFGS([t], lr=0.001, max_iter=2000)
 
-    
+    logits_list = []
+    labels_list = []
+    temps = []
+    losses = []
+
+    for x,t in validationLoader:
+        x,t = x.cuda(), t.cuda()
+        model.eval()
+
+        with torch.not_grad():
+            logits_list.append(model.forward(x))
+            labels_list.append(t)
+
+    #creamos los tensores
+    logits_list = torch.cat(logits_list).cuda()
+    labels_list = torch.cat(logits_list).cuda()
+
+    def _eval():
+        cost = loss(T_scaling(logits_list, t), labels_list)
+        cost.backward()
+        temps.append(t.item())
+        losses.append(cost)
+        return cost
+
+    optimizer.step(_eval)
+
+    print("Final T_scaling factor: {:.2f}".format(t.item()))
+
+    return t
+        
+   
 
 if __name__ == '__main__':
     testSize=9000
@@ -152,11 +181,13 @@ if __name__ == '__main__':
     softmaxes = []
     logitsS = []
     softmaxesVal = []
+    modelos = []
     for n in range(nModelos):
         model = ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
+        modelos.append(model)
         model.eval()
         logitsAux, logits = generarLogits(model, test_loader)
         softmaxesVal.append(procesaValidacion(model, val_loader))
@@ -173,12 +204,11 @@ if __name__ == '__main__':
     medidasCalibracionEnsemble = CalculaCalibracion(avgLogits, labels)
     print("Medidas de calibracion ensemble {} modelos: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(nModelos, 100*(medidasCalibracionEnsemble[0]), 100*(medidasCalibracionEnsemble[1]), medidasCalibracionEnsemble[2], medidasCalibracionEnsemble[3]))
     
-    print("==> Aplicando temp scaling")
+    print("==> Aplicando temperature scaling")
 
-    for logitsVal, logits in zip(softmaxesVal, logitsS):
-        logitsTemp = tempScaling(logitsVal, logits, labelsVal)
-        medidasCalibracionTemp = CalculaCalibracion(logitsTemp, labels)
-        print("Medidas de calibracion modelo {} con Temperature Scaling: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracionTemp[0]), 100*(medidasCalibracionTemp[1]), medidasCalibracionTemp[2], medidasCalibracionTemp[3]))
+    
+    for n, model in enumerate(modelos):
+        t = temperatureScaling(model, val_loader)
 
 
 
