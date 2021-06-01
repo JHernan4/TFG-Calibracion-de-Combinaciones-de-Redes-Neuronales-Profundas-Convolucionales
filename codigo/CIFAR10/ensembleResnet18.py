@@ -30,8 +30,8 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 #recibe el dataset y devuelve dos conjuntos, uno de test (90%) y otro de validacion (10%)
-def separarDataset(dataset, porc_test=0.9, porc_val=0.1):
-    val_set, test_set = torch.utils.data.random_split(cifar10_test, [len(dataset)*porc_val, len(dataset)*porc_test])
+def separarDataset(dataset, testSize=9000):
+    val_set, test_set = torch.utils.data.random_split(cifar10_test, [len(dataset)-testSize, testSize])
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=100, shuffle=False, num_workers=workers)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=100, shuffle=False, num_workers=workers)
 
@@ -273,4 +273,4 @@ if __name__ == '__main__':
         print("Modelo {} cargado correctamente".format(n+1))
 
         logits, labels, acc = test(model, test_loader)
-        print("Accuracy modelo {}: {}".format(n+1, 100*acc))        
+        print("Accuracy modelo {}: {:.2f}".format(n+1, 100*acc))        
