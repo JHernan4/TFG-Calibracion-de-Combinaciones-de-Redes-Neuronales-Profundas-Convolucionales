@@ -2,6 +2,7 @@ import torch
 if not torch.cuda.is_available():
     print("Error al cargar GPU")
     exit(-1)
+toch.manual_seed(123)
 import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
