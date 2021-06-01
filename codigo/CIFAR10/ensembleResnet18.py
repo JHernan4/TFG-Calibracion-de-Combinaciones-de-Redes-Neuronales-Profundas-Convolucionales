@@ -38,16 +38,16 @@ def separarDataset(dataset, testSize=9000):
     return test_loader, val_loader
 
 #recibe un dataLoader y un modelo y devuelve los logits y targets
-def procesarConjunto(model, dataLoader):
+def test2(model, dataLoader):
     logits = []
-    labels = []
 
     for x,t in dataLoader:
         x,t= x.cuda(), t.cuda()
-        labels.append(t)
-        logits.append(model.forward(x))
-    
-    return torch.cat(logits).cuda(), torch.cat(labels).cuda()
+        pred = model.forward(x)
+        logits.append(pred.cpu().detach().numpy())
+        
+    logits = np.array(logits)
+    return torch.from_numpy(logits)
 
 def test(model, dataLoader, nClases=10, calibracion=False, temperature=None):
     sm = nn.Softmax(dim=1)
@@ -153,7 +153,9 @@ def generarLogits(model, testLoader):
 #calcula el % de accuracy dados unos logits y labels
 def calculaAcuracy(logits, labels):
     total, correct = 0,0
+    sm = nn.Softmax(dim=1)
     for logit, t in zip(logits, labels):
+        logit = sm(logit)
         index = torch.argmax(logit, 1)
         total+=t.size(0)
         correct+=(t==index).sum().float()
@@ -260,18 +262,28 @@ if __name__ == '__main__':
 
     test_loader, validation_loader = separarDataset(cifar10_test)    
 
-    labels=[]
-    for x,t in test_loader: 
-        labels.append(t)
+    validation_labels = []
+    for x,t in validation_loader:
+        validation_labels.append(t)
+
+    test_labels = []
+    for x,t in test_loader:
+        test_labels.append(t)
     
-    labelsVal = []
-    for x, t in validation_loader:
-        labelsVal.append(t)
 
     softmaxes = []
     logitsS = []
     softmaxesVal = []
     modelos = []
+
+    for n in range(nModelos):
+        model = ResNet18()
+        model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
+        model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
+        print("Modelo {} cargado correctamente".format(n+1))
+        logits = test2(model, test_loader)
+        acc = calculaAcuracy(logits, test_labels)
+        print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
     '''
     for n in range(nModelos):
         model = ResNet18()
@@ -304,7 +316,7 @@ if __name__ == '__main__':
 
 
     '''
-    
+    '''
     for n in range(nModelos):
         model = ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
@@ -322,3 +334,4 @@ if __name__ == '__main__':
         print("Accuracy modelo {}: {:.2f}".format(n+1, 100*acc))
         ECE, MCE, NLL= get_metrics(logits, labels)       
         print("ECE: {}%, MCE: {}%, NLL: {}".format(ECE*100, MCE*100, NLL))
+    '''
