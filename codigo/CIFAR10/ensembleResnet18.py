@@ -63,7 +63,7 @@ def test(model, dataLoader, nClases=10, calibracion=False, temperature=None):
             pred = model.forward(x)
             
             if calibracion == True and temperature is not None:
-                pred = T_scaling(pred, t)
+                pred = T_scaling(pred, temperature)
 
             pred = sm(pred)
 
@@ -107,12 +107,15 @@ def calc_bins(preds, labels_oneh):
 def get_metrics(preds, labels_oneh):
   ECE = 0
   MCE = 0
+  loss = nn.CrossEntropyLoss()
   bins, _, bin_accs, bin_confs, bin_sizes = calc_bins(preds, labels_oneh)
 
   for i in range(len(bins)):
     abs_conf_dif = abs(bin_accs[i] - bin_confs[i])
     ECE += (bin_sizes[i] / sum(bin_sizes)) * abs_conf_dif
     MCE = max(MCE, abs_conf_dif)
+    NLL = loss(preds, labels_oneh)
+
 
   return ECE, MCE
 
@@ -220,7 +223,7 @@ def temperatureScaling(model, validationLoader):
         x,t = x.cuda(), t.cuda()
         model.eval()
 
-        with torch.not_grad():
+        with torch.no_grad():
             logits_list.append(model.forward(x))
             labels_list.append(t)
 
@@ -237,7 +240,7 @@ def temperatureScaling(model, validationLoader):
 
     optimizer.step(_eval)
 
-    print("Final T_scaling factor: {:.2f}".format(t.item()))
+    print("Final T_scaling factor: {:.2f}".format(temperature.item()))
 
     return temperature
         
