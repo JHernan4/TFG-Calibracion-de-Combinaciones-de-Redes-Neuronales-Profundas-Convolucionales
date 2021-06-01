@@ -3,10 +3,8 @@ if not torch.cuda.is_available():
     print("Error al cargar GPU")
     exit(-1)
 torch.manual_seed(123)
-import torchvision #computer vision dataset module
 import torchvision.models as models
 from torchvision import datasets,transforms
-from torch.utils.data.sampler import SubsetRandomSampler
 from torch import nn
 import sys
 sys.path.append("../models")
@@ -14,7 +12,6 @@ sys.path.append("../calibration")
 from resnet import ResNet18
 from utils_calibration import compute_calibration_measures
 import numpy as np
-from numpy import array
 import os
 import random
 import argparse
@@ -39,7 +36,7 @@ def separarDataset(dataset, testSize=9000):
     return test_loader, val_loader
 
 #recibe un dataLoader y un modelo y devuelve los logits y targets
-def test2(model, dataLoader):
+def test(model, dataLoader):
     logits = []
 
     for x,t in dataLoader:
@@ -50,108 +47,7 @@ def test2(model, dataLoader):
     logits = np.array(logits)
     return torch.from_numpy(logits)
 
-def test(model, dataLoader, nClases=10, calibracion=False, temperature=None):
-    sm = nn.Softmax(dim=1)
-    preds = []
-    labels_oneh = []
-    correct = 0
-    counter = 0
-
-    model.eval()
-    with torch.no_grad():
-        for x, t in dataLoader:
-            x,t = x.cuda(), t.cuda()
-            pred = model.forward(x)
-            
-            if calibracion == True and temperature is not None:
-                pred = T_scaling(pred, temperature)
-
-            pred = sm(pred)
-
-            _, predicted_cl = torch.max(pred.data, 1)
-            pred = pred.cpu().detach().numpy()
-
-            label_oneh = nn.functional.one_hot(t, num_classes=nClases)
-            label_oneh  = label_oneh.cpu().detach().numpy()
-
-            preds.extend(pred)
-            labels_oneh.extend(label_oneh)
-
-            correct+= sum(predicted_cl == t).item()
-            
-            counter+=t.size(0)
-
-    preds = np.array(preds).flatten()
-    labels_oneh = np.array(labels_oneh).flatten()
-
-    return preds, labels_oneh, correct/counter    
-
-def calc_bins(preds, labels_oneh):
-  # Assign each prediction to a bin
-  num_bins = 10
-  bins = np.linspace(0.1, 1, num_bins)
-  binned = np.digitize(preds, bins)
-
-  # Save the accuracy, confidence and size of each bin
-  bin_accs = np.zeros(num_bins)
-  bin_confs = np.zeros(num_bins)
-  bin_sizes = np.zeros(num_bins)
-
-  for bin in range(num_bins):
-    bin_sizes[bin] = len(preds[binned == bin])
-    if bin_sizes[bin] > 0:
-      bin_accs[bin] = (labels_oneh[binned==bin]).sum() / bin_sizes[bin]
-      bin_confs[bin] = (preds[binned==bin]).sum() / bin_sizes[bin]
-
-  return bins, binned, bin_accs, bin_confs, bin_sizes
-
-def get_metrics(preds, labels_oneh):
-  ECE = 0
-  MCE = 0
-  loss = nn.CrossEntropyLoss()
-  bins, _, bin_accs, bin_confs, bin_sizes = calc_bins(preds, labels_oneh)
-
-  for i in range(len(bins)):
-    abs_conf_dif = abs(bin_accs[i] - bin_confs[i])
-    ECE += (bin_sizes[i] / sum(bin_sizes)) * abs_conf_dif
-    MCE = max(MCE, abs_conf_dif)
-    NLL = loss(preds, labels_oneh)
-
-
-  return ECE, MCE, NLL
-
-
-#recibe el modelo y el conjunto de validacion y devuelve los logits pasados por la softmax
-def procesaValidacion(model, valLoader):
-    Softmax = nn.Softmax(dim=1)
-    logitsS = []
-    softmaxes = []
-    with torch.no_grad():
-        for x,t in valLoader:
-            x,t=x.cuda(),t.cuda()
-            logits=model.forward(x)
-            softmax = Softmax(logits)
-            logitsS.append(np.array(logits.cpu())) #meter esto en la funcion de calibracion
-            softmaxes.append(np.array(softmax.cpu())) #meter esto en la funcion de calibracion
-    
-    return torch.Tensor(np.array(logitsS))
-
-#genera los logits del conjunto de test y los devuelve pasados por la softmax
-def generarLogits(model, testLoader):
-    Softmax = nn.Softmax(dim=1)
-    logitsS = []
-    softmaxes = []
-    with torch.no_grad():
-        for x,t in testLoader:
-            x,t=x.cuda(),t.cuda()
-            logits=model.forward(x)
-            softmax = Softmax(logits)
-            logitsS.append(np.array(logits.cpu())) #meter esto en la funcion de calibracion
-            softmaxes.append(np.array(softmax.cpu())) #meter esto en la funcion de calibracion
-    
-    return torch.Tensor(np.array(logitsS)), torch.Tensor(np.array(softmaxes))
-
-
+#genera los logits promedio del ensemble
 def generaLogitsPromedio(logitsModelos):
     avgLogits = []
     for i in range(len(logitsModelos[0])):
@@ -175,23 +71,6 @@ def calculaAcuracy(logits, labels):
     
     return correct/total
 
-#calcula el accuracy de un ensemble de modelos dados los logits de todos los modelos y los labels 
-def accuracyEnsemble(logits, labels):
-    avgLogits = []
-    for i in range(len(logits[0])):
-        avgLogits.append(logits[0][i]/len(logits))
-    
-    for n in range(1, len(logits)):
-        for i in range(len(logits[n])):
-            avgLogits[i]+=logits[n][i]/len(logits)
-
-    correct,total=0,0
-    for avgLogit, t in zip(avgLogits, labels):
-        total+=t.size(0)
-        index=torch.argmax(avgLogit,1)
-        correct+=(t==index).sum().float()
-
-    return correct/total, avgLogits
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
 def CalculaCalibracion(logits,labels):
@@ -205,27 +84,11 @@ def CalculaCalibracion(logits,labels):
         counter+=1
     return [ECE/counter, MCE/counter, BRIER/counter, NNL/counter]
 
-
-#crea y optimiza un parametro T para el Temp Scal con el CONJUNTO DE VALIDACION
-def entrenaParametroT(logitsVal, labelsVal):
-    temperature = nn.Parameter(torch.ones(1) * 0.1)
-    loss = nn.CrossEntropyLoss()
-
-    for e in range(2000):
-        optimizer = torch.optim.SGD([temperature], lr=0.001, momentum=0.9)
-        for logit, label in zip(logits, labels):
-            cost = loss(logit * temperature, label)
-            cost.backward()
-            optimizer.step(eval)
-            optimizer.zero_grad()
-    print('Optimal temperature: %.3f' % temperature.item())
-    return temperature
-
-
+#realiza la operacion Temp Scal (multiplica los logits recibidos por el parametro T)
 def T_scaling(logits, t):
     return torch.mul(logits, t)
     
-#realiza el Temp Scal sobre el CONJUNTO DE TEST
+#recibe modelo y conjunto de validacion. Crea y optimiza el parametro T para usar en T_scaling
 def temperatureScaling(model, validationLoader):
     temperature = nn.Parameter(torch.ones(1).cuda())
     loss = nn.CrossEntropyLoss()
@@ -264,33 +127,35 @@ def temperatureScaling(model, validationLoader):
    
 
 if __name__ == '__main__':
-    testSize=9000
+    testSize=9000 #tamanio del conjunto de test 
     args = parse_args()
-    PATH = './checkpointResnet18/checkpoint_resnet18'
+    PATH = './checkpointResnet18/checkpoint_resnet18' #ruta para lectura de los checkpoints de los modelos
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
+
+    #transformaciones que se aplican al dataset
     cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     
+    #descarga del dataset y aplicacion de las transformaciones
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=True,transform=cifar10_transforms_test)
 
+    #separa dataset en TEST y VALIDACION
     test_loader, validation_loader = separarDataset(cifar10_test)    
 
+    #almacena las etiquetas del conjunto de validacion
     validation_labels = []
     for x,t in validation_loader:
         validation_labels.append(t)
 
+    #almacena las etiquetas del conjunto de test
     test_labels = []
     for x,t in test_loader:
         test_labels.append(t)
     
-
-    softmaxes = []
-    logitsS = []
-    softmaxesVal = []
-    modelos = []
-    logitsModelos = []
+    modelos = [] #almacena los modelos leidos de cada fichero .pt
+    logitsModelos = [] #lista que almacena los logits de todos los modelos
 
     for n in range(nModelos):
         model = ResNet18()
@@ -298,7 +163,7 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         modelos.append(model)
         print("Modelo {} cargado correctamente".format(n+1))
-        logits = test2(model, test_loader)
+        logits = test(model, test_loader)
         logitsModelos.append(logits)
         acc = calculaAcuracy(logits, test_labels)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
@@ -315,55 +180,3 @@ if __name__ == '__main__':
         medidasCalibracion = CalculaCalibracion(T_scaling(logitsModelos[n], temperature), test_labels)
         print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
         
-
-    '''
-    for n in range(nModelos):
-        model = ResNet18()
-        model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
-        model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
-        print("Modelo {} cargado correctamente".format(n+1))
-        modelos.append(model)
-        model.eval()
-        logitsAux, logits = generarLogits(model, test_loader)
-        softmaxesVal.append(procesaValidacion(model, val_loader))
-        softmaxes.append(logits)
-        logitsS.append(logitsAux)
-        acc = calculaAcuracy(logits, labels)
-        print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
-        medidasCalibracion = CalculaCalibracion(logits, labels)
-        print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
-        
-
-    accEnsemble, avgLogits = accuracyEnsemble(softmaxes, labels)
-    print("Accuracy del ensemble de {} modelos: {:.3f}".format(nModelos, 100*accEnsemble))
-    medidasCalibracionEnsemble = CalculaCalibracion(avgLogits, labels)
-    print("Medidas de calibracion ensemble {} modelos: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(nModelos, 100*(medidasCalibracionEnsemble[0]), 100*(medidasCalibracionEnsemble[1]), medidasCalibracionEnsemble[2], medidasCalibracionEnsemble[3]))
-    
-    print("==> Aplicando temperature scaling")
-
-    
-    for n, model in enumerate(modelos):
-        t = temperatureScaling(model, val_loader)
-
-
-
-    '''
-    '''
-    for n in range(nModelos):
-        model = ResNet18()
-        model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
-        model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
-        print("Modelo {} cargado correctamente".format(n+1))
-
-        logits, labels, acc = test(model, test_loader)
-        print("Accuracy modelo {}: {:.2f}".format(n+1, 100*acc))
-        ECE, MCE, NLL= get_metrics(logits, labels)       
-        print("ECE: {}%, MCE: {}%, NLL: {}".format(ECE*100, MCE*100, NLL))
-
-        t = temperatureScaling(model, validation_loader)
-        print("==> Aplicando temp scaling")
-        logits, labels, acc = test(model, test_loader, 10, True, t)
-        print("Accuracy modelo {}: {:.2f}".format(n+1, 100*acc))
-        ECE, MCE, NLL= get_metrics(logits, labels)       
-        print("ECE: {}%, MCE: {}%, NLL: {}".format(ECE*100, MCE*100, NLL))
-    '''
