@@ -272,3 +272,6 @@ if __name__ == '__main__':
     ECE, MCE = get_metrics(T_scaling(logitsModelos[0], temperature), test_labels)
     print(ECE)
     print(MCE)
+
+    draw_reliability_graph(logitsModelos[0], test_labels)
+    draw_reliability_graph(T_scaling(logitsModelos[0], temperature), test_labels)
