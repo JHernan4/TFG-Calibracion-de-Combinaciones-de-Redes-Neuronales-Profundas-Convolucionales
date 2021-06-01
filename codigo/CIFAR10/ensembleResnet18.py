@@ -15,6 +15,8 @@ import numpy as np
 import os
 import random
 import argparse
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Parametros para configuracion del entrenamiento de las redes neuronales convolucionales')
@@ -167,6 +169,46 @@ def get_metrics(preds, labels):
     MCE = max(MCE, abs_conf_dif)
 
   return ECE, MCE
+
+def draw_reliability_graph(preds, labels):
+    ECE, MCE = get_metrics(preds, labels)
+    bins, _, bin_accs, _, _ = calc_bins(preds, labels)
+
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.gca()
+
+    # x/y limits
+    ax.set_xlim(0, 1.05)
+    ax.set_ylim(0, 1)
+
+    # x/y labels
+    plt.xlabel('Confidence')
+    plt.ylabel('Accuracy')
+
+    # Create grid
+    ax.set_axisbelow(True) 
+    ax.grid(color='gray', linestyle='dashed')
+
+    # Error bars
+    plt.bar(bins, bins,  width=0.1, alpha=0.3, edgecolor='black', color='r', hatch='\\')
+
+    # Draw bars and identity line
+    plt.bar(bins, bin_accs, width=0.1, alpha=1, edgecolor='black', color='b')
+    plt.plot([0,1],[0,1], '--', color='gray', linewidth=2)
+
+    # Equally spaced axes
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    # ECE and MCE legend
+    ECE_patch = mpatches.Patch(color='green', label='ECE = {:.2f}%'.format(ECE*100))
+    MCE_patch = mpatches.Patch(color='red', label='MCE = {:.2f}%'.format(MCE*100))
+    plt.legend(handles=[ECE_patch, MCE_patch])
+
+    #plt.show()
+  
+    plt.savefig('calibrated_network.png', bbox_inches='tight')
+
+    #draw_reliability_graph(preds)
    
 
 if __name__ == '__main__':
@@ -225,5 +267,8 @@ if __name__ == '__main__':
         
 
     ECE, MCE = get_metrics(logitsModelos[0], test_labels)
+    print(ECE)
+    print(MCE)
+    ECE, MCE = get_metrics(T_scaling(logitsModelos[0], temperature), test_labels)
     print(ECE)
     print(MCE)
