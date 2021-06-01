@@ -29,6 +29,58 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
+#recibe el dataset y devuelve dos conjuntos, uno de test (90%) y otro de validacion (10%)
+def separarDataset(dataset, porc_test=0.9, porc_val=0.1):
+    val_set, test_set = torch.utils.data.random_split(cifar10_test, [len(dataset)*porc_val, len(dataset)*porc_test])
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=100, shuffle=False, num_workers=workers)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=100, shuffle=False, num_workers=workers)
+
+    return test_loader, val_loader
+
+#recibe un dataLoader y un modelo y devuelve los logits y targets
+def procesarConjunto(model, dataLoader):
+    logits = []
+    labels = []
+
+    for x,t in dataLoader:
+        x,t= x.cuda(), t.cuda()
+        labels.append(t)
+        logits.append(model.forward(x))
+    
+    return torch.cat(logits).cuda(), torch.cat(labels).cuda()
+
+def test(model, dataLoader, nClases=10):
+    sm = nn.Softmax(dim=1)
+    preds = []
+    labels_oneh = []
+    correct = 0
+    counter = 0
+
+    model.eval()
+    with torch.no_grad():
+        for x, t in dataLoader:
+            x,t = x.cuda(), t.cuda()
+            pred = model.forward(x)
+            pred = sm(pred)
+
+            _, predicted_cl = torch.max(pred.data, 1)
+            pred = pred.cpu().detach().numpy()
+
+            label_oneh = nn.functional.one_hot(t, num_classes=nClases)
+            label_oneh  = label_oneh.cpu().detach().numpy()
+
+            preds.extend(pred)
+            labels_oneh.extend(label_oneh)
+
+            correct+= sum(predicted_cl == t).item()
+            
+            counter+=t.size(0)
+
+    preds = np.array(preds).flatten()
+    labels_oneh = np.array(labels_oneh).flatten()
+
+    return preds, label_oneh, correct/counter    
+
 #recibe el modelo y el conjunto de validacion y devuelve los logits pasados por la softmax
 def procesaValidacion(model, valLoader):
     Softmax = nn.Softmax(dim=1)
@@ -119,9 +171,9 @@ def T_scaling(logits, t):
     
 #realiza el Temp Scal sobre el CONJUNTO DE TEST
 def temperatureScaling(model, validationLoader):
-    t = nn.Parameter(torch.ones(1).cuda())
+    temperature = nn.Parameter(torch.ones(1).cuda())
     loss = nn.CrossEntropyLoss()
-    optimizer = torch.optim.LBFGS([t], lr=0.001, max_iter=2000)
+    optimizer = torch.optim.LBFGS([temperature], lr=0.001, max_iter=2000)
 
     logits_list = []
     labels_list = []
@@ -138,12 +190,12 @@ def temperatureScaling(model, validationLoader):
 
     #creamos los tensores
     logits_list = torch.cat(logits_list).cuda()
-    labels_list = torch.cat(logits_list).cuda()
+    labels_list = torch.cat(labels_list).cuda()
 
     def _eval():
-        cost = loss(T_scaling(logits_list, t), labels_list)
+        cost = loss(T_scaling(logits_list, temperature), labels_list)
         cost.backward()
-        temps.append(t.item())
+        temps.append(temperature.item())
         losses.append(cost)
         return cost
 
@@ -151,7 +203,7 @@ def temperatureScaling(model, validationLoader):
 
     print("Final T_scaling factor: {:.2f}".format(t.item()))
 
-    return t
+    return temperature
         
    
 
@@ -166,22 +218,22 @@ if __name__ == '__main__':
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=True,transform=cifar10_transforms_test)
-    val_set, test_set = torch.utils.data.random_split(cifar10_test, [1000, 9000])
-    test_loader = torch.utils.data.DataLoader(test_set, batch_size=100, shuffle=False, num_workers=workers)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=100, shuffle=False, num_workers=workers)
+
+    test_loader, validation_loader = separarDataset(cifar10_test)    
 
     labels=[]
     for x,t in test_loader: 
         labels.append(t)
     
     labelsVal = []
-    for x, t in val_loader:
+    for x, t in validation_loader:
         labelsVal.append(t)
 
     softmaxes = []
     logitsS = []
     softmaxesVal = []
     modelos = []
+    '''
     for n in range(nModelos):
         model = ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
@@ -212,6 +264,13 @@ if __name__ == '__main__':
 
 
 
-
+    '''
     
-        
+    for n in range(nModelos):
+        model = ResNet18()
+        model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
+        model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
+        print("Modelo {} cargado correctamente".format(n+1))
+
+        logits, labels, acc = test(model, test_loader)
+        print("Accuracy modelo {}: {}".format(n+1, 100*acc))        
