@@ -313,12 +313,12 @@ if __name__ == '__main__':
 
         logits, labels, acc = test(model, test_loader)
         print("Accuracy modelo {}: {:.2f}".format(n+1, 100*acc))
-        ECE, MCE = get_metrics(logits, labels)       
-        print("ECE: {}%, MCE: {}%".format(ECE*100, MCE*100))
+        ECE, MCE, NLL= get_metrics(logits, labels)       
+        print("ECE: {}%, MCE: {}%, NLL: {}".format(ECE*100, MCE*100, NLL))
 
         t = temperatureScaling(model, validation_loader)
         print("==> Aplicando temp scaling")
         logits, labels, acc = test(model, test_loader, 10, True, t)
         print("Accuracy modelo {}: {:.2f}".format(n+1, 100*acc))
-        ECE, MCE = get_metrics(logits, labels)       
-        print("ECE: {}%, MCE: {}%".format(ECE*100, MCE*100))
+        ECE, MCE, NLL= get_metrics(logits, labels)       
+        print("ECE: {}%, MCE: {}%, NLL: {}".format(ECE*100, MCE*100, NLL))
