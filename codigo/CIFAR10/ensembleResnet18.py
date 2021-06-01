@@ -123,7 +123,50 @@ def temperatureScaling(model, validationLoader):
     print("Final T_scaling factor: {:.2f}".format(temperature.item()))
 
     return temperature
-        
+
+def calc_bins(logits, labels):
+    sm = nn.Softmax(dim=1)
+    preds = []
+    labels_oneh = []
+    for logit, label in zip(logits, labels):
+        pred = sm(logit)
+        pred = pred.cpu().detach().numpy()
+        label_oneh = torch.nn.functional.one_hot(label, num_classes=10)
+        label_oneh = label_oneh.cpu().detach().numpy()
+        preds.extend(pred)
+        labels_oneh.extend(label_oneh)
+    
+    preds = np.array(preds).flatten()
+    labels_oneh = np.array(labels_oneh).flatten()
+    # Assign each prediction to a bin
+    num_bins = 10
+    bins = np.linspace(0.1, 1, num_bins)
+    binned = np.digitize(preds, bins)
+
+    # Save the accuracy, confidence and size of each bin
+    bin_accs = np.zeros(num_bins)
+    bin_confs = np.zeros(num_bins)
+    bin_sizes = np.zeros(num_bins)
+
+    for bin in range(num_bins):
+        bin_sizes[bin] = len(preds[binned == bin])
+        if bin_sizes[bin] > 0:
+            bin_accs[bin] = (labels_oneh[binned==bin]).sum() / bin_sizes[bin]
+            bin_confs[bin] = (preds[binned==bin]).sum() / bin_sizes[bin]
+
+    return bins, binned, bin_accs, bin_confs, bin_sizes
+
+def get_metrics(preds, labels):
+  ECE = 0
+  MCE = 0
+  bins, _, bin_accs, bin_confs, bin_sizes = calc_bins(preds, labels)
+
+  for i in range(len(bins)):
+    abs_conf_dif = abs(bin_accs[i] - bin_confs[i])
+    ECE += (bin_sizes[i] / sum(bin_sizes)) * abs_conf_dif
+    MCE = max(MCE, abs_conf_dif)
+
+  return ECE, MCE
    
 
 if __name__ == '__main__':
@@ -176,7 +219,11 @@ if __name__ == '__main__':
         medidasCalibracion = CalculaCalibracion(logitsModelos[n], test_labels)
         print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
         print("Aplicando Temp Scal...")
-        temperature = temperatureScaling(model, validation_loader)
+        temperature = temperatureScaling(model, validation_loader).cpu()
         medidasCalibracion = CalculaCalibracion(T_scaling(logitsModelos[n], temperature), test_labels)
         print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
         
+
+    ECE, MCE = get_metrics(logitsModelos[0], test_labels)
+    print(ECE)
+    print(MCE)
