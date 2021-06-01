@@ -151,6 +151,18 @@ def generarLogits(model, testLoader):
     
     return torch.Tensor(np.array(logitsS)), torch.Tensor(np.array(softmaxes))
 
+
+def generaLogitsPromedio(logitsModelos):
+    avgLogits = []
+    for i in range(len(logitsModelos[0])):
+        avgLogits.append(logitsModelos[0][i]/len(logitsModelos))
+    
+    for n in range(1, len(logitsModelos)):
+        for i in range(len(logitsModelos[n])):
+            avgLogits[i]+=logitsModelos[n][i]/len(logitsModelos)
+    
+    return avgLogits
+
 #calcula el % de accuracy dados unos logits y labels
 def calculaAcuracy(logits, labels):
     total, correct = 0,0
@@ -276,6 +288,7 @@ if __name__ == '__main__':
     logitsS = []
     softmaxesVal = []
     modelos = []
+    logitsModelos = []
 
     for n in range(nModelos):
         model = ResNet18()
@@ -283,8 +296,14 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         print("Modelo {} cargado correctamente".format(n+1))
         logits = test2(model, test_loader)
+        logitsModelos.append(logits)
         acc = calculaAcuracy(logits, test_labels)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
+    
+    avgLogits = generaLogitsPromedio(logitsModelos)
+    accEsemble = calculaAcuracy(avgLogits, test_labels)
+    print("Accuracy ensemble de {} modelos: {:.3f}".format(n+1, 100*accEsemble))
+    
     '''
     for n in range(nModelos):
         model = ResNet18()
