@@ -170,7 +170,7 @@ def get_metrics(preds, labels):
 
   return ECE, MCE
 
-def draw_reliability_graph(preds, labels):
+def draw_reliability_graph(preds, labels, file):
     ECE, MCE = get_metrics(preds, labels)
     bins, _, bin_accs, _, _ = calc_bins(preds, labels)
 
@@ -206,7 +206,7 @@ def draw_reliability_graph(preds, labels):
 
     #plt.show()
   
-    plt.savefig('calibrated_network.png', bbox_inches='tight')
+    plt.savefig(file, bbox_inches='tight')
 
     #draw_reliability_graph(preds)
    
@@ -273,5 +273,5 @@ if __name__ == '__main__':
     print(ECE)
     print(MCE)
 
-    draw_reliability_graph(logitsModelos[0], test_labels)
-    draw_reliability_graph(T_scaling(logitsModelos[0], temperature), test_labels)
+    draw_reliability_graph(logitsModelos[0], test_labels, 'uncalibrated_network.png')
+    draw_reliability_graph(T_scaling(logitsModelos[0], temperature), test_labels, 'calibrated_network.png')
