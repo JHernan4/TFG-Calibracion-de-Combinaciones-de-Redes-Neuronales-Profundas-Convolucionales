@@ -310,7 +310,10 @@ if __name__ == '__main__':
     for n, model in enumerate(modelos):
         medidasCalibracion = CalculaCalibracion(logitsModelos[n], test_labels)
         print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
+        print("Aplicando Temp Scal...")
         temperature = temperatureScaling(model, validation_loader)
+        medidasCalibracion = CalculaCalibracion(T_scaling(logitsModelos[n], temperature), test_labels)
+        print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
         
 
     '''
