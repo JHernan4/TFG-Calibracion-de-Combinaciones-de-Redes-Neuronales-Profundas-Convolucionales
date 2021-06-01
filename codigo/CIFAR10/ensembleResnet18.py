@@ -81,6 +81,38 @@ def test(model, dataLoader, nClases=10):
 
     return preds, label_oneh, correct/counter    
 
+def calc_bins(preds, labels_oneh):
+  # Assign each prediction to a bin
+  num_bins = 10
+  bins = np.linspace(0.1, 1, num_bins)
+  binned = np.digitize(preds, bins)
+
+  # Save the accuracy, confidence and size of each bin
+  bin_accs = np.zeros(num_bins)
+  bin_confs = np.zeros(num_bins)
+  bin_sizes = np.zeros(num_bins)
+
+  for bin in range(num_bins):
+    bin_sizes[bin] = len(preds[binned == bin])
+    if bin_sizes[bin] > 0:
+      bin_accs[bin] = (labels_oneh[binned==bin]).sum() / bin_sizes[bin]
+      bin_confs[bin] = (preds[binned==bin]).sum() / bin_sizes[bin]
+
+  return bins, binned, bin_accs, bin_confs, bin_sizes
+
+def get_metrics(preds, labels_oneh):
+  ECE = 0
+  MCE = 0
+  bins, _, bin_accs, bin_confs, bin_sizes = calc_bins(preds, labels_oneh)
+
+  for i in range(len(bins)):
+    abs_conf_dif = abs(bin_accs[i] - bin_confs[i])
+    ECE += (bin_sizes[i] / sum(bin_sizes)) * abs_conf_dif
+    MCE = max(MCE, abs_conf_dif)
+
+  return ECE, MCE
+
+
 #recibe el modelo y el conjunto de validacion y devuelve los logits pasados por la softmax
 def procesaValidacion(model, valLoader):
     Softmax = nn.Softmax(dim=1)
@@ -273,4 +305,6 @@ if __name__ == '__main__':
         print("Modelo {} cargado correctamente".format(n+1))
 
         logits, labels, acc = test(model, test_loader)
-        print("Accuracy modelo {}: {:.2f}".format(n+1, 100*acc))        
+        print("Accuracy modelo {}: {:.2f}".format(n+1, 100*acc))
+        ECE, MCE = get_metrics(logits, labels)       
+        print("ECE: {}%, MCE: {}%".format(ECE*100, MCE*100)) 
