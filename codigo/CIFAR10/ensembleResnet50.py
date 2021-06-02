@@ -227,7 +227,7 @@ if __name__ == '__main__':
 
     testSize=9000 #tamanio del conjunto de test 
     args = parse_args()
-    PATH = './checkpointResnet18/checkpoint_resnet18' #ruta para lectura de los checkpoints de los modelos
+    PATH = './checkpointResnet50/checkpoint_resnet50' #ruta para lectura de los checkpoints de los modelos
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
