@@ -67,10 +67,12 @@ def generaLogitsPromedio(logitsModelos):
 
 
 #calcula el % de accuracy dados unos logits y labels
-def calculaAcuracy(logits, labels):
-    list_logits = torch.chunk(logits)
+def calculaAcuracy(logits, labels, batch_size=100):
+    list_logits = torch.chunk(logits, batch_size)
+    for logit in list_logits:
+        print('a')
 
-    return len(logits)
+    return len(list_logits)
 
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
