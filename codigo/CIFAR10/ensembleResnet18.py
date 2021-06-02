@@ -39,13 +39,14 @@ def separarDataset(dataset, testSize=9000):
 
 #recibe un dataLoader y un modelo y devuelve los logits y targets
 def test(model, dataLoader):
-    logits = []
+    logits = torch.Tensor()
     total, correct = 0,0
     sm = nn.Softmax(dim=1)
     for x,t in dataLoader:
         x,t= x.cuda(), t.cuda()
         pred = model.forward(x)
         logit = sm(pred)
+        logits = torch.cat((logits, logit.cpu()))
         index = torch.argmax(logit, 1)
         total+=t.size(0)
         correct+=(t==index).sum().float()
@@ -53,41 +54,7 @@ def test(model, dataLoader):
     
     return correct/total
 
-def test2(model, dataLoader, nClases=10, calibracion=False, temperature=None):
-    sm = nn.Softmax(dim=1)
-    preds = []
-    labels_oneh = []
-    correct = 0
-    counter = 0
-
-    model.eval()
-    with torch.no_grad():
-        for x, t in dataLoader:
-            x,t = x.cuda(), t.cuda()
-            pred = model.forward(x)
-            
-            if calibracion == True and temperature is not None:
-                pred = T_scaling(pred, temperature)
-
-            pred = sm(pred)
-
-            _, predicted_cl = torch.max(pred.data, 1)
-            pred = pred.cpu().detach().numpy()
-
-            label_oneh = nn.functional.one_hot(t, num_classes=nClases)
-            label_oneh  = label_oneh.cpu().detach().numpy()
-
-            preds.extend(pred)
-            labels_oneh.extend(label_oneh)
-
-            correct+= sum(predicted_cl == t).item()
-            
-            counter+=t.size(0)
-
-    preds = np.array(preds).flatten()
-    labels_oneh = np.array(labels_oneh).flatten()
-
-    return preds, labels_oneh, correct/counter
+ 
 
 #genera los logits promedio del ensemble
 def generaLogitsPromedio(logitsModelos):
