@@ -53,7 +53,7 @@ def test(model, dataLoader):
             total+=t.size(0)
             correct+=(t==index).sum().float()
         
-    return correct/total
+    return logits, correct/total
 
  
 
@@ -256,7 +256,8 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         modelos.append(model)
         print("Modelo {} cargado correctamente".format(n+1))
-        acc = test(model, test_loader)
+        logits, acc = test(model, test_loader)
+        print(logits.size())
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
     
     
