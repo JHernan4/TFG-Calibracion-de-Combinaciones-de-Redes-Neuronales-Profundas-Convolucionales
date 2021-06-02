@@ -264,12 +264,11 @@ if __name__ == '__main__':
     print("Medidas para el ensemble de {} modelos".format(nModelos))
     avgLogits = generaLogitsPromedio(logitsModelos)
     print("\tAccuracy: {:.2f}".format(100*calculaAcuracy(avgLogits, test_labels)))
-
-
-    ECE, MCE = get_metrics(logitsModelos[0], test_labels)
-    print(ECE)
-    print(MCE)
-
+    ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(avgLogits), test_labels)
+    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    print("==> Aplicando Temp Scaling al ensemble")
+    ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(T_scaling(avgLogits, temperature)), test_labels)
+    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
 
     
     
