@@ -48,8 +48,7 @@ def test(model, dataLoader):
             pred = model.forward(x)
             logit = sm(pred)
             index = torch.argmax(logit, 1)
-            logit = logit.cpu()
-            logits = torch.cat((logits, logit), 0)
+            logits = torch.cat((logits, pred.cpu()), 0)
             total+=t.size(0)
             correct+=(t==index).sum().float()
         
@@ -84,7 +83,7 @@ def calculaAcuracy(logits, labels):
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
 def CalculaCalibracion(logits,labels):
-    return compute_calibration_measures(logits, labels, False, 100)
+    return compute_calibration_measures(logits, labels, True, 15)
     
         
 
