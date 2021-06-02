@@ -49,6 +49,42 @@ def test(model, dataLoader):
     logits = np.array(logits)
     return torch.from_numpy(logits)
 
+def test2(model, dataLoader, nClases=10, calibracion=False, temperature=None):
+    sm = nn.Softmax(dim=1)
+    preds = []
+    labels_oneh = []
+    correct = 0
+    counter = 0
+
+    model.eval()
+    with torch.no_grad():
+        for x, t in dataLoader:
+            x,t = x.cuda(), t.cuda()
+            pred = model.forward(x)
+            
+            if calibracion == True and temperature is not None:
+                pred = T_scaling(pred, temperature)
+
+            pred = sm(pred)
+
+            _, predicted_cl = torch.max(pred.data, 1)
+            pred = pred.cpu().detach().numpy()
+
+            label_oneh = nn.functional.one_hot(t, num_classes=nClases)
+            label_oneh  = label_oneh.cpu().detach().numpy()
+
+            preds.extend(pred)
+            labels_oneh.extend(label_oneh)
+
+            correct+= sum(predicted_cl == t).item()
+            
+            counter+=t.size(0)
+
+    preds = np.array(preds).flatten()
+    labels_oneh = np.array(labels_oneh).flatten()
+
+    return preds, labels_oneh, correct/counter
+
 #genera los logits promedio del ensemble
 def generaLogitsPromedio(logitsModelos):
     avgLogits = []
@@ -257,6 +293,7 @@ if __name__ == '__main__':
     accEsemble = calculaAcuracy(avgLogits, test_labels)
     print("Accuracy ensemble de {} modelos: {:.3f}".format(n+1, 100*accEsemble))
 
+    '''
     for n, model in enumerate(modelos):
         medidasCalibracion = CalculaCalibracion(logitsModelos[n], test_labels)
         print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
@@ -275,3 +312,13 @@ if __name__ == '__main__':
 
     draw_reliability_graph(logitsModelos[0], test_labels, 'uncalibrated_network.png')
     draw_reliability_graph(T_scaling(logitsModelos[0], temperature), test_labels, 'calibrated_network.png')
+
+    '''
+
+    for n, model in enumerate(modelos):
+        preds, labels, acc = test2(model, test_loader)
+        print("Accuracy modelo {}: {}".format(n+1, acc*100))
+        preds, labels = torch.from_numpy(preds), torch.from_numpy(labels)
+        
+        medidasCalibracion = [compute_calibration_measures(preds, labels, True, 100)]
+        print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0][0]), 100*(medidasCalibracion[0][1]), medidasCalibracion[0][2], medidasCalibracion[0][3]))
