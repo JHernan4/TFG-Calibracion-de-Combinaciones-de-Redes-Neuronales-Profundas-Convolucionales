@@ -84,15 +84,9 @@ def calculaAcuracy(logits, labels):
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
 def CalculaCalibracion(logits,labels):
-    sm = nn.Softmax(dim=1)
-    ECE,MCE,BRIER,NNL = 0.0,0.0,0.0,0.0
-    counter = 0
-    for logit, label in zip(logits, labels):
-        logit = sm(logit)
-        calibrationMeasures = [compute_calibration_measures(logit, label, False, 100)]
-        ECE,MCE,BRIER,NNL = ECE+calibrationMeasures[0][0],MCE+calibrationMeasures[0][1],BRIER+calibrationMeasures[0][2],NNL+calibrationMeasures[0][3]
-        counter+=1
-    return [ECE/counter, MCE/counter, BRIER/counter, NNL/counter]
+    return compute_calibration_measures(logits, labels, False, 100)
+    
+        
 
 #realiza la operacion Temp Scal (multiplica los logits recibidos por el parametro T)
 def T_scaling(logits, t):
@@ -259,6 +253,9 @@ if __name__ == '__main__':
         logits, acc = test(model, test_loader)
         print(logits.size())
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(logits, test_labels)
+        print("Medidas de calibracion para el modelo {}:".format(n+1))
+        print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
     
     
 
