@@ -89,7 +89,7 @@ def CalculaCalibracion(logits,labels):
 
 #realiza la operacion Temp Scal (multiplica los logits recibidos por el parametro T)
 def T_scaling(logits, t):
-    return torch.mul(logits, t)
+    return torch.div(logits, t)
     
 #recibe modelo y conjunto de validacion. Crea y optimiza el parametro T para usar en T_scaling
 def temperatureScaling(model, validationLoader):
@@ -110,7 +110,7 @@ def temperatureScaling(model, validationLoader):
         cost = loss(T_scaling(logits_list, temperature), labels_list)
         cost.backward()
         return cost
-    for e in range(50):
+    for e in range(2000):
         optimizer.step(_eval)
 
     print("Final T_scaling factor: {:.2f}".format(temperature.item()))
@@ -118,23 +118,10 @@ def temperatureScaling(model, validationLoader):
     return temperature.cpu()
 
 def calc_bins(logits, labels):
-    sm = nn.Softmax(dim=1)
-    preds = []
-    labels_oneh = []
-    for logit, label in zip(logits, labels):
-        pred = sm(logit)
-        pred = pred.cpu().detach().numpy()
-        label_oneh = torch.nn.functional.one_hot(label, num_classes=10)
-        label_oneh = label_oneh.cpu().detach().numpy()
-        preds.extend(pred)
-        labels_oneh.extend(label_oneh)
-    
-    preds = np.array(preds).flatten()
-    labels_oneh = np.array(labels_oneh).flatten()
     # Assign each prediction to a bin
     num_bins = 10
     bins = np.linspace(0.1, 1, num_bins)
-    binned = np.digitize(preds, bins)
+    binned = np.digitize(logits, bins)
 
     # Save the accuracy, confidence and size of each bin
     bin_accs = np.zeros(num_bins)
@@ -142,10 +129,10 @@ def calc_bins(logits, labels):
     bin_sizes = np.zeros(num_bins)
 
     for bin in range(num_bins):
-        bin_sizes[bin] = len(preds[binned == bin])
+        bin_sizes[bin] = len(logits[binned == bin])
         if bin_sizes[bin] > 0:
-            bin_accs[bin] = (labels_oneh[binned==bin]).sum() / bin_sizes[bin]
-            bin_confs[bin] = (preds[binned==bin]).sum() / bin_sizes[bin]
+            bin_accs[bin] = (labels[binned==bin]).sum() / bin_sizes[bin]
+            bin_confs[bin] = (logits[binned==bin]).sum() / bin_sizes[bin]
 
     return bins, binned, bin_accs, bin_confs, bin_sizes
 
@@ -203,6 +190,7 @@ def draw_reliability_graph(preds, labels, file):
    
 
 if __name__ == '__main__':
+    sm = nn.Softmax(dim=1)
     testSize=9000 #tamanio del conjunto de test 
     args = parse_args()
     PATH = './checkpointResnet18/checkpoint_resnet18' #ruta para lectura de los checkpoints de los modelos
@@ -237,12 +225,12 @@ if __name__ == '__main__':
         logits, acc = test(model, test_loader)
         print(logits.size())
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
-        ECE, MCE, BRIER, NNL = CalculaCalibracion(logits, test_labels)
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(sm(logits), test_labels)
         print("Medidas de calibracion para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
         print("==> Aplicando Temp Scaling...")
         temperature = temperatureScaling(model, validation_loader)
-        ECE, MCE, BRIER, NNL = CalculaCalibracion(T_scaling(logits, temperature), test_labels)
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(sm(T_scaling(logits, temperature)), test_labels)
         print("Medidas de calibracion para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
 
