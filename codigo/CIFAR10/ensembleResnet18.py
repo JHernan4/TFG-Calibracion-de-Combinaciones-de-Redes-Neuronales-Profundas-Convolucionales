@@ -42,17 +42,17 @@ def test(model, dataLoader):
     logits = []
     total, correct = 0,0
     sm = nn.Softmax(dim=1)
-    for x,t in dataLoader:
-        x,t= x.cuda(), t.cuda()
-        pred = model.forward(x)
-        logit = sm(pred)
-        index = torch.argmax(logit, 1)
-        logit = logit.cpu()
-        logits.append(logit)
-        total+=t.size(0)
-        correct+=(t==index).sum().float()
+    with torch.no_grad():
+        for x,t in dataLoader:
+            x,t= x.cuda(), t.cuda()
+            pred = model.forward(x)
+            logit = sm(pred)
+            index = torch.argmax(logit, 1)
+            logit = logit.cpu()
+            logits.append(logit)
+            total+=t.size(0)
+            correct+=(t==index).sum().float()
         
-    
     return correct/total
 
  
