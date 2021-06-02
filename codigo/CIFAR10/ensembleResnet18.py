@@ -266,15 +266,16 @@ if __name__ == '__main__':
     test_loader, validation_loader = separarDataset(cifar10_test)    
 
     #almacena las etiquetas del conjunto de validacion
-    validation_labels = []
+    validation_labels = torch.LongTensor()	
     for x,t in validation_loader:
-        validation_labels.append(t)
+        validation_labels = torch.cat((validation_labels, t))
 
     #almacena las etiquetas del conjunto de test
-    test_labels = []
+    test_labels = torch.LongTensor()
     for x,t in test_loader:
-        test_labels.append(t)
-    
+        test_labels = torch.cat((test_labels, t), 0)
+    print(test_labels.size())
+    print(validation_labels.size())
     modelos = [] #almacena los modelos leidos de cada fichero .pt
     logitsModelos = [] #lista que almacena los logits de todos los modelos
 
