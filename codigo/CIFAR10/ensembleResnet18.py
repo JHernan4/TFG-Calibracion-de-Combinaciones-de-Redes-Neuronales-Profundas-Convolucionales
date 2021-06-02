@@ -37,7 +37,7 @@ def separarDataset(dataset, testSize=9000):
 
     return test_loader, val_loader
 
-#recibe un dataLoader y un modelo y devuelve los logits y targets
+#recibe un dataLoader y un modelo y devuelve los logits y el accuracy
 def test(model, dataLoader):
     logits = torch.Tensor()
     total, correct = 0,0
@@ -58,27 +58,19 @@ def test(model, dataLoader):
 
 #genera los logits promedio del ensemble
 def generaLogitsPromedio(logitsModelos):
-    avgLogits = []
-    for i in range(len(logitsModelos[0])):
-        avgLogits.append(logitsModelos[0][i]/len(logitsModelos))
+    avgLogits = logitsModelos[0]/len(logitsModelos)
     
     for n in range(1, len(logitsModelos)):
-        for i in range(len(logitsModelos[n])):
-            avgLogits[i]+=logitsModelos[n][i]/len(logitsModelos)
-    
+        avgLogits+=logitsModelos[n]/len(logitsModelos)
+
     return avgLogits
+
 
 #calcula el % de accuracy dados unos logits y labels
 def calculaAcuracy(logits, labels):
-    total, correct = 0,0
-    sm = nn.Softmax(dim=1)
-    for logit, t in zip(logits, labels):
-        logit = sm(logit)
-        index = torch.argmax(logit, 1)
-        total+=t.size(0)
-        correct+=(t==index).sum().float()
-    
-    return correct/total
+    list_logits = torch.chunk(logits)
+
+    return len(logits)
 
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
@@ -95,7 +87,7 @@ def T_scaling(logits, t):
 def temperatureScaling(model, validationLoader):
     temperature = nn.Parameter(torch.ones(1).cuda())
     loss = nn.CrossEntropyLoss()
-    optimizer = torch.optim.LBFGS([temperature], lr=0.001, max_iter=10000)
+    optimizer = torch.optim.LBFGS([temperature], lr=0.001, max_iter=20000)
 
     logits_list = torch.Tensor().cuda()
     labels_list = torch.LongTensor().cuda()
@@ -238,7 +230,7 @@ if __name__ == '__main__':
         modelos.append(model)
         print("Modelo {} cargado correctamente".format(n+1))
         logits, acc = test(model, test_loader)
-        print(logits.size())
+        logitsModelos.append(logits)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
         ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logits), test_labels)
         print("Medidas de calibracion para el modelo {}:".format(n+1))
@@ -248,6 +240,10 @@ if __name__ == '__main__':
         ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(T_scaling(logits, temperature)), test_labels)
         print("Medidas de calibracion para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+
+    print("Medidas para el ensemble de {} modelos".format(nModelos))
+    avgLogits = generaLogitsPromedio(logitsModelos)
+    print("\tAccuracy: {}".format(calculaAcuracy(avgLogits, test_labels)))
 
 
     
