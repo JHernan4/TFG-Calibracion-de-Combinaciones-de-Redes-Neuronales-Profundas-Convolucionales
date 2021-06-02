@@ -96,27 +96,27 @@ def T_scaling(logits, t):
 def temperatureScaling(model, validationLoader):
     temperature = nn.Parameter(torch.ones(1).cuda())
     loss = nn.CrossEntropyLoss()
-    optimizer = torch.optim.LBFGS([temperature], lr=0.001, max_iter=2000)
+    optimizer = torch.optim.SGD([temperature], lr=0.001, momentum=0.9)
 
-    logits_list = torch.Tensor()
-    labels_list = torch.LongTensor()
+    logits_list = torch.Tensor().cuda()
+    labels_list = torch.LongTensor().cuda()
     for x,t in validationLoader:
         x,t = x.cuda(), t.cuda()
         model.eval()
         with torch.no_grad():
-            logits_list = torch.cat((logits_list, model.forward(x), 0))
-            labels_list = torch.cat((labels_list, t, 0))
+            logits_list = torch.cat((logits_list, model.forward(x)), 0)
+            labels_list = torch.cat((labels_list, t), 0)
 
     def _eval():
         cost = loss(T_scaling(logits_list, temperature), labels_list)
         cost.backward()
         return cost
-
-    optimizer.step(_eval)
+    for e in range(50):
+        optimizer.step(_eval)
 
     print("Final T_scaling factor: {:.2f}".format(temperature.item()))
 
-    return temperature
+    return temperature.cpu()
 
 def calc_bins(logits, labels):
     sm = nn.Softmax(dim=1)
@@ -219,12 +219,7 @@ if __name__ == '__main__':
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=True,transform=cifar10_transforms_test)
 
     #separa dataset en TEST y VALIDACION
-    test_loader, validation_loader = separarDataset(cifar10_test)    
-
-    #almacena las etiquetas del conjunto de validacion
-    validation_labels = torch.LongTensor()	
-    for x,t in validation_loader:
-        validation_labels = torch.cat((validation_labels, t))
+    test_loader, validation_loader = separarDataset(cifar10_test)
 
     #almacena las etiquetas del conjunto de test
     test_labels = torch.LongTensor()
