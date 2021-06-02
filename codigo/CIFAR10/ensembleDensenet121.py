@@ -16,7 +16,7 @@ from torch import nn
 import sys
 sys.path.append("../models")
 sys.path.append("../calibration")
-from resnet import DenseNet121
+from densenet import DenseNet121
 from utils_calibration import compute_calibration_measures
 import numpy as np
 import os
@@ -136,7 +136,10 @@ def temperatureScaling(model, validationLoader):
         
     print(loss.data)
     print("Final T_scaling factor con SGD: {:.2f}".format(temperatureS.item()))
-    return temperatureL.cpu()
+    if temperatureL >= temperatureS:
+        return temperatureL.cpu()
+    else:
+        return temperatureL.cpu()
 
 def calc_bins(logits, labels, batch_size=100):
     sm = nn.Softmax(dim=1)

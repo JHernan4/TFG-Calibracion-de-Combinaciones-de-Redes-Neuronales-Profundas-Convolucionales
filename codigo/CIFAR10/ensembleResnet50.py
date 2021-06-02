@@ -136,7 +136,10 @@ def temperatureScaling(model, validationLoader):
         
     print(loss.data)
     print("Final T_scaling factor con SGD: {:.2f}".format(temperatureS.item()))
-    return temperatureL.cpu()
+    if temperatureL >= temperatureS:
+        return temperatureL.cpu()
+    else:
+        return temperatureL.cpu()
 
 def calc_bins(logits, labels, batch_size=100):
     sm = nn.Softmax(dim=1)
