@@ -98,28 +98,18 @@ def temperatureScaling(model, validationLoader):
     loss = nn.CrossEntropyLoss()
     optimizer = torch.optim.LBFGS([temperature], lr=0.001, max_iter=2000)
 
-    logits_list = []
-    labels_list = []
-    temps = []
-    losses = []
-
+    logits_list = torch.Tensor()
+    labels_list = torch.LongTensor()
     for x,t in validationLoader:
         x,t = x.cuda(), t.cuda()
         model.eval()
-
         with torch.no_grad():
-            logits_list.append(model.forward(x))
-            labels_list.append(t)
-
-    #creamos los tensores
-    logits_list = torch.cat(logits_list).cuda()
-    labels_list = torch.cat(labels_list).cuda()
+            logits_list = torch.cat((logits_list, model.forward(x), 0))
+            labels_list = torch.cat((labels_list, t, 0))
 
     def _eval():
         cost = loss(T_scaling(logits_list, temperature), labels_list)
         cost.backward()
-        temps.append(temperature.item())
-        losses.append(cost)
         return cost
 
     optimizer.step(_eval)
@@ -256,6 +246,13 @@ if __name__ == '__main__':
         ECE, MCE, BRIER, NNL = CalculaCalibracion(logits, test_labels)
         print("Medidas de calibracion para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+        print("==> Aplicando Temp Scaling...")
+        temperature = temperatureScaling(model, validation_loader)
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(T_scaling(logits, temperature), test_labels)
+        print("Medidas de calibracion para el modelo {}:".format(n+1))
+        print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+
+
     
     
 
