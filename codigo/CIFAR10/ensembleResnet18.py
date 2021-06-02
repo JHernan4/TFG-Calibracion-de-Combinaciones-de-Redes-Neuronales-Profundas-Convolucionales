@@ -95,7 +95,7 @@ def T_scaling(logits, t):
 #recibe modelo y conjunto de validacion. Crea y optimiza el parametro T para usar en T_scaling
 def temperatureScaling(model, validationLoader):
     temperature = nn.Parameter(torch.ones(1).cuda())
-    loss = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.LBFGS([temperature], lr=0.001, max_iter=20000)
 
     logits_list = torch.Tensor().cuda()
@@ -108,14 +108,23 @@ def temperatureScaling(model, validationLoader):
             labels_list = torch.cat((labels_list, t), 0)
 
     def _eval():
-        cost = loss(T_scaling(logits_list, temperature), labels_list)
-        cost.backward()
-        return cost
+        loss = criterion(T_scaling(logits_list, temperature), labels_list)
+        loss.backward()
+        return loss
 
     optimizer.step(_eval)
 
-    print("Final T_scaling factor: {:.2f}".format(temperature.item()))
+    print("Final T_scaling factor con LBFGS: {:.2f}".format(temperature.item()))
 
+    optimizer = torch.optim.SGD([temperature], lr=0.001, momentum=0.9)
+
+    for e in range(20000):
+        optimizer.zero_grad()
+        loss = criterion(T_scaling(logits_list, temperature), labels_list)
+        loss.backward()
+        optimizer.step()
+
+    print("Final T_scaling factor con SGD: {:.2f}".format(temperature.item()))
     return temperature.cpu()
 
 def calc_bins(logits, labels, batch_size=100):
