@@ -39,20 +39,15 @@ def separarDataset(dataset, testSize=9000):
 
 #recibe un dataLoader y un modelo y devuelve los logits y targets
 def test(model, dataLoader):
-    sm = nn.Softmax(dim=1)
-    logits = torch.Tensor().cuda()
-    total, correct = 0,0
+    logits = []
+
     for x,t in dataLoader:
         x,t= x.cuda(), t.cuda()
         pred = model.forward(x)
-        pred = sm(pred)
-        logits = torch.cat((logits, pred.cpu()), 0)
-        index = torch.argmax(pred, 1)
-        total+=t.size(0)
-        correct+=(t==index).sum().float()
+        logits.append(pred.cpu().detach().numpy())
         
-    
-    return logits, correct/total
+    logits = np.array(logits)
+    return torch.from_numpy(logits)
 
 def test2(model, dataLoader, nClases=10, calibracion=False, temperature=None):
     sm = nn.Softmax(dim=1)
@@ -101,6 +96,19 @@ def generaLogitsPromedio(logitsModelos):
             avgLogits[i]+=logitsModelos[n][i]/len(logitsModelos)
     
     return avgLogits
+
+#calcula el % de accuracy dados unos logits y labels
+def calculaAcuracy(logits, labels):
+    total, correct = 0,0
+    sm = nn.Softmax(dim=1)
+    for logit, t in zip(logits, labels):
+        logit = sm(logit)
+        index = torch.argmax(logit, 1)
+        total+=t.size(0)
+        correct+=(t==index).sum().float()
+    
+    return correct/total
+
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
 def CalculaCalibracion(logits,labels):
@@ -258,14 +266,14 @@ if __name__ == '__main__':
     test_loader, validation_loader = separarDataset(cifar10_test)    
 
     #almacena las etiquetas del conjunto de validacion
-    validation_labels = torch.LongTensor()
+    validation_labels = []
     for x,t in validation_loader:
-        validation_labels = torch.cat((validation_labels, t.cuda()), 0)
+        validation_labels.append(t)
 
     #almacena las etiquetas del conjunto de test
-    test_labels = torch.LongTensor()
+    test_labels = []
     for x,t in test_loader:
-        test_labels = torch.cat((test_labels, t()), 0)
+        test_labels.append(t)
     
     modelos = [] #almacena los modelos leidos de cada fichero .pt
     logitsModelos = [] #lista que almacena los logits de todos los modelos
@@ -276,14 +284,35 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         modelos.append(model)
         print("Modelo {} cargado correctamente".format(n+1))
-        logits, acc = test(model, test_loader)
+        logits = test(model, test_loader)
         logitsModelos.append(logits)
+        acc = calculaAcuracy(logits, test_labels)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
-
-
+    
+    avgLogits = generaLogitsPromedio(logitsModelos)
+    accEsemble = calculaAcuracy(avgLogits, test_labels)
+    print("Accuracy ensemble de {} modelos: {:.3f}".format(n+1, 100*accEsemble))
 
     
-    
+    for n, model in enumerate(modelos):
+        medidasCalibracion = CalculaCalibracion(logitsModelos[n], test_labels)
+        print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
+        print("Aplicando Temp Scal...")
+        temperature = temperatureScaling(model, validation_loader).cpu()
+        medidasCalibracion = CalculaCalibracion(T_scaling(logitsModelos[n], temperature), test_labels)
+        print("Medidas de calibracion modelo {}: \n\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNNL: {:.3f}".format(n+1, 100*(medidasCalibracion[0]), 100*(medidasCalibracion[1]), medidasCalibracion[2], medidasCalibracion[3]))
+        
+
+    ECE, MCE = get_metrics(logitsModelos[0], test_labels)
+    print(ECE)
+    print(MCE)
+    ECE, MCE = get_metrics(T_scaling(logitsModelos[0], temperature), test_labels)
+    print(ECE)
+    print(MCE)
+
+    draw_reliability_graph(logitsModelos[0], test_labels, 'uncalibrated_network.png')
+    draw_reliability_graph(T_scaling(logitsModelos[0], temperature), test_labels, 'calibrated_network.png')
+
     
 
     
