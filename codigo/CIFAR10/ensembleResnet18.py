@@ -40,7 +40,7 @@ def separarDataset(dataset, testSize=9000):
 #recibe un dataLoader y un modelo y devuelve los logits y targets
 def test(model, dataLoader):
     sm = nn.Softmax(dim=1)
-    logits = torch.Tensor()
+    logits = torch.Tensor().cuda()
     total, correct = 0,0
     for x,t in dataLoader:
         x,t= x.cuda(), t.cuda()
@@ -101,14 +101,6 @@ def generaLogitsPromedio(logitsModelos):
             avgLogits[i]+=logitsModelos[n][i]/len(logitsModelos)
     
     return avgLogits
-
-#calcula el % de accuracy dados unos logits y labels
-def calculaAcuracy(logits, labels):
-    for logit, t in zip(logits, labels):
-        
-    
-    return correct/total
-
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
 def CalculaCalibracion(logits,labels):
@@ -266,14 +258,14 @@ if __name__ == '__main__':
     test_loader, validation_loader = separarDataset(cifar10_test)    
 
     #almacena las etiquetas del conjunto de validacion
-    validation_labels = torch.LongTensor()
+    validation_labels = torch.LongTensor().cuda()
     for x,t in validation_loader:
-        validation_labels = torch.cat((validation_labels, t), 0)
+        validation_labels = torch.cat((validation_labels, t.cuda()), 0)
 
     #almacena las etiquetas del conjunto de test
-    test_labels = torch.LongTensor()
+    test_labels = torch.LongTensor().cuda()
     for x,t in test_loader:
-        test_labels = torch.cat((test_labels, t), 0)
+        test_labels = torch.cat((test_labels, t.cuda()), 0)
     
     modelos = [] #almacena los modelos leidos de cada fichero .pt
     logitsModelos = [] #lista que almacena los logits de todos los modelos
