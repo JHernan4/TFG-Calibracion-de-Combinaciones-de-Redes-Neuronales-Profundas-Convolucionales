@@ -266,12 +266,12 @@ if __name__ == '__main__':
     test_loader, validation_loader = separarDataset(cifar10_test)    
 
     #almacena las etiquetas del conjunto de validacion
-    validation_labels = torch.Tensor()
+    validation_labels = torch.LongTensor()
     for x,t in validation_loader:
         validation_labels = torch.cat((validation_labels, t), 0)
 
     #almacena las etiquetas del conjunto de test
-    test_labels = torch.Tensor()
+    test_labels = torch.LongTensor()
     for x,t in test_loader:
         test_labels = torch.cat((test_labels, t), 0)
     
@@ -287,7 +287,7 @@ if __name__ == '__main__':
         logits, acc = test(model, test_loader)
         logitsModelos.append(logits)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
-        
+
 
 
     
