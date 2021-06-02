@@ -229,7 +229,7 @@ if __name__ == '__main__':
 
     softmax = nn.Softmax(dim=1)
 
-    testSize=9000 #tamanio del conjunto de test 
+    testSize=8000 #tamanio del conjunto de test 
     args = parse_args()
     PATH = './checkpointDensenet121/checkpoint_densenet121' #ruta para lectura de los checkpoints de los modelos
     nModelos = args.nModelos
@@ -244,7 +244,7 @@ if __name__ == '__main__':
     cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=True,transform=cifar10_transforms_test)
 
     #separa dataset en TEST y VALIDACION
-    test_loader, validation_loader = separarDataset(cifar10_test)
+    test_loader, validation_loader = separarDataset(cifar10_test, testSize)
 
     #almacena las etiquetas del conjunto de test
     test_labels = torch.LongTensor()
