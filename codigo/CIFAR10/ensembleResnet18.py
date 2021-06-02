@@ -39,7 +39,7 @@ def separarDataset(dataset, testSize=9000):
 
 #recibe un dataLoader y un modelo y devuelve los logits y targets
 def test(model, dataLoader):
-    logits = []
+    logits = torch.Tensor()
     total, correct = 0,0
     sm = nn.Softmax(dim=1)
     with torch.no_grad():
@@ -49,7 +49,7 @@ def test(model, dataLoader):
             logit = sm(pred)
             index = torch.argmax(logit, 1)
             logit = logit.cpu()
-            logits.append(logit)
+            logits = torch.cat((logits, logit), 0)
             total+=t.size(0)
             correct+=(t==index).sum().float()
         
