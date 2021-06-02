@@ -101,9 +101,9 @@ def T_scaling(logits, t):
     
 #recibe modelo y conjunto de validacion. Crea y optimiza el parametro T para usar en T_scaling
 def temperatureScaling(model, validationLoader):
-    temperature = nn.Parameter(torch.ones(1).cuda())
+    temperatureL = nn.Parameter(torch.ones(1).cuda())
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.LBFGS([temperature], lr=0.001, max_iter=20000)
+    optimizer = torch.optim.LBFGS([temperatureL], lr=0.001, max_iter=20000)
 
     logits_list = torch.Tensor().cuda()
     labels_list = torch.LongTensor().cuda()
@@ -113,26 +113,30 @@ def temperatureScaling(model, validationLoader):
         with torch.no_grad():
             logits_list = torch.cat((logits_list, model.forward(x)), 0)
             labels_list = torch.cat((labels_list, t), 0)
-
+    
     def _eval():
-        loss = criterion(T_scaling(logits_list, temperature), labels_list)
+        loss = criterion(T_scaling(logits_list, temperatureL), labels_list)
         loss.backward()
         return loss
-
+    
     optimizer.step(_eval)
 
-    print("Final T_scaling factor con LBFGS: {:.2f}".format(temperature.item()))
+    print("Final T_scaling factor con LBFGS: {:.2f}".format(temperatureL.item()))
 
-    optimizer = torch.optim.SGD([temperature], lr=0.001, momentum=0.9)
+    temperatureS = nn.Parameter(torch.ones(1).cuda())
+    optimizer = torch.optim.SGD([temperatureS], lr=0.001, momentum=0.9)
 
     for e in range(20000):
+        if temperatureS.item() == temperatureL.item():
+            break
         optimizer.zero_grad()
-        loss = criterion(T_scaling(logits_list, temperature), labels_list)
+        loss = criterion(T_scaling(logits_list, temperatureS), labels_list)
         loss.backward()
         optimizer.step()
-
-    print("Final T_scaling factor con SGD: {:.2f}".format(temperature.item()))
-    return temperature.cpu()
+        
+    print(loss.data)
+    print("Final T_scaling factor con SGD: {:.2f}".format(temperatureS.item()))
+    return temperatureL.cpu()
 
 def calc_bins(logits, labels, batch_size=100):
     sm = nn.Softmax(dim=1)

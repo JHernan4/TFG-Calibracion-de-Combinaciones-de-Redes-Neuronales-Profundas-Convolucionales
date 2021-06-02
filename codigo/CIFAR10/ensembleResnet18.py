@@ -128,7 +128,7 @@ def temperatureScaling(model, validationLoader):
         optimizer.step()
         
     print(loss.data)
-    print("Final T_scaling factor con SGD: {:.2f}".format(temperature.item()))
+    print("Final T_scaling factor con SGD: {:.2f}".format(temperatureS.item()))
     return temperatureL.cpu()
 
 def calc_bins(logits, labels, batch_size=100):
