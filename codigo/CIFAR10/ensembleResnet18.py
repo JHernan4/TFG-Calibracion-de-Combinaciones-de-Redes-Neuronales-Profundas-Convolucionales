@@ -252,7 +252,7 @@ if __name__ == '__main__':
 
     print("Medidas para el ensemble de {} modelos".format(nModelos))
     avgLogits = generaLogitsPromedio(logitsModelos)
-    print("\tAccuracy: {}".format(calculaAcuracy(avgLogits, test_labels)))
+    print("\tAccuracy: {:.2f}".format(100*calculaAcuracy(avgLogits, test_labels)))
 
 
     
