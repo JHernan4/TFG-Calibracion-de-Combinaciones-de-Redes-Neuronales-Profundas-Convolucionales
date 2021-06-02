@@ -110,6 +110,7 @@ def temperatureScaling(model, validationLoader):
     def _eval():
         loss = criterion(T_scaling(logits_list, temperature), labels_list)
         loss.backward()
+        print(loss.data)
         return loss
 
     optimizer.step(_eval)
@@ -123,6 +124,7 @@ def temperatureScaling(model, validationLoader):
         loss = criterion(T_scaling(logits_list, temperature), labels_list)
         loss.backward()
         optimizer.step()
+        print(loss.data)
 
     print("Final T_scaling factor con SGD: {:.2f}".format(temperature.item()))
     return temperature.cpu()
