@@ -118,11 +118,13 @@ def temperatureScaling(model, validationLoader):
 
     return temperature.cpu()
 
-def calc_bins(logits, labels):
+def calc_bins(logits, labels, batch_size=100):
     sm = nn.Softmax(dim=1)
+    list_preds = torch.chunk(logits, batch_size)
+    list_labels = torch.chunk(labels, batch_size)
     preds = []
     labels_oneh = []
-    for logit, label in zip(logits, labels):
+    for logit, label in zip(list_preds, list_labels):
         pred = sm(logit)
         pred = pred.cpu().detach().numpy()
         label_oneh = torch.nn.functional.one_hot(label, num_classes=10)
@@ -253,6 +255,11 @@ if __name__ == '__main__':
     print("Medidas para el ensemble de {} modelos".format(nModelos))
     avgLogits = generaLogitsPromedio(logitsModelos)
     print("\tAccuracy: {:.2f}".format(100*calculaAcuracy(avgLogits, test_labels)))
+
+
+    ECE, MCE = get_metrics(logitsModelos[0], test_labels)
+    print(ECE)
+    print(MCE)
 
 
     
