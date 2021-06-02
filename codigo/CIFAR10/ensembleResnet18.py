@@ -245,7 +245,7 @@ if __name__ == '__main__':
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
         print("==> Aplicando Temp Scaling...")
         temperature = temperatureScaling(model, validation_loader)
-        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(T_scaling(logits, temperature), test_labels)
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(T_scaling(logits, temperature)), test_labels)
         print("Medidas de calibracion para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
 
