@@ -46,7 +46,7 @@ def test(model, dataLoader):
         x,t= x.cuda(), t.cuda()
         pred = model.forward(x)
         pred = sm(pred)
-        logits = torch.cat((logits, pred), 0)
+        logits = torch.cat((logits, pred.cpu()), 0)
         index = torch.argmax(pred, 1)
         total+=t.size(0)
         correct+=(t==index).sum().float()
@@ -258,14 +258,14 @@ if __name__ == '__main__':
     test_loader, validation_loader = separarDataset(cifar10_test)    
 
     #almacena las etiquetas del conjunto de validacion
-    validation_labels = torch.LongTensor().cuda()
+    validation_labels = torch.LongTensor()
     for x,t in validation_loader:
         validation_labels = torch.cat((validation_labels, t.cuda()), 0)
 
     #almacena las etiquetas del conjunto de test
-    test_labels = torch.LongTensor().cuda()
+    test_labels = torch.LongTensor()
     for x,t in test_loader:
-        test_labels = torch.cat((test_labels, t.cuda()), 0)
+        test_labels = torch.cat((test_labels, t()), 0)
     
     modelos = [] #almacena los modelos leidos de cada fichero .pt
     logitsModelos = [] #lista que almacena los logits de todos los modelos
