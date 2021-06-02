@@ -248,7 +248,7 @@ if __name__ == '__main__':
     logitsModelos = [] #lista que almacena los logits de todos los modelos
     logitsCalibrados = []
     for n in range(nModelos):
-        model = ResNet18()
+        model = ResNet18(num_classes=100)
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         modelos.append(model)
@@ -257,14 +257,14 @@ if __name__ == '__main__':
         logitsModelos.append(logits)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
         ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logits), test_labels)
-        print("Medidas de calibracion para el modelo {}:".format(n+1))
+        print("Medidas SIN CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
         print("==> Aplicando Temp Scaling...")
         temperature = temperatureScaling(model, validation_loader)
         logitsCal = T_scaling(logits, temperature)
         logitsCalibrados.append(logitsCal)
         ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels)
-        print("Medidas de calibracion para el modelo {}:".format(n+1))
+        print("Medidas CON CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
 
     print("Medidas para el ensemble de {} modelos".format(nModelos))
