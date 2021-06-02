@@ -31,7 +31,7 @@ def seed_worker(worker_id):
 
 #recibe el dataset y devuelve dos conjuntos, uno de test (90%) y otro de validacion (10%)
 def separarDataset(dataset, testSize=9000):
-    val_set, test_set = torch.utils.data.random_split(cifar10_test, [len(dataset)-testSize, testSize])
+    val_set, test_set = torch.utils.data.random_split(dataset, [len(dataset)-testSize, testSize])
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=100, shuffle=False, num_workers=workers)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=100, shuffle=False, num_workers=workers)
 
@@ -230,14 +230,14 @@ if __name__ == '__main__':
     workers = (int)(os.popen('nproc').read())
 
     #transformaciones que se aplican al dataset
-    cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
+    cifar100_transforms_test=transforms.Compose([transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     
     #descarga del dataset y aplicacion de las transformaciones
-    cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=True,transform=cifar10_transforms_test)
+    cifar100_test=datasets.CIFAR100('/tmp/',train=False,download=True,transform=cifar100_transforms_test)
 
     #separa dataset en TEST y VALIDACION
-    test_loader, validation_loader = separarDataset(cifar10_test, testSize)
+    test_loader, validation_loader = separarDataset(cifar100_test, testSize)
 
     #almacena las etiquetas del conjunto de test
     test_labels = torch.LongTensor()
@@ -248,7 +248,7 @@ if __name__ == '__main__':
     logitsModelos = [] #lista que almacena los logits de todos los modelos
     logitsCalibrados = []
     for n in range(nModelos):
-        model = ResNet18(num_classes=100)
+        model = ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         modelos.append(model)
