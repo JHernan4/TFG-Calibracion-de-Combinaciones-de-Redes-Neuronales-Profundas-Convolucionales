@@ -16,7 +16,7 @@ import sys
 sys.path.append("../models")
 from resnet import ResNet18
 import numpy as np
-from numpy import array
+import matplotlib.pyplot as plt
 import os
 import random
 import argparse
@@ -82,7 +82,19 @@ class MyModel():
         print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
         return self.net
 
-
+    def saveGraficas(self, nModelo, nEpocas=250):
+        file = '/checkpointResnet18Tra/resnet18_'+str(nModelo+1)+'.jpg'
+        x = np.linspace(0,nEpocas,nEpocas)
+        plt.figure()
+        plt.plot(x, self.trainAccuracies)
+        plt.plot(x, self.validationAccuracies)
+        
+        plt.xlabel("Number of epoch")
+        plt.ylabel("Accuracy")
+        plt.title("Accuracy Resnet18 on CIFAR10")
+        plt.legend()
+        plt.savefig(file)
+ 
 def parse_args():
     parser = argparse.ArgumentParser(description='Parametros para configuracion del entrenamiento de las redes neuronales convolucionales')
     parser.add_argument('--seed', help='semilla para inicializar generador de numeros aleatorios de numpy', required=True, type=int)
@@ -133,6 +145,8 @@ if __name__ == '__main__':
     for n in range(nModelos):
         model=ResNet18()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
-        net = MyModel(model)
+        net = MyModel(model, nEpocas)
         seed = np.random.randint(2**10)
         models.append(net.trainModel(train_loader, validation_loader, seed, n, PATH, nEpocas))
+
+        net.saveGraficas(n, nEpocas)
