@@ -86,8 +86,8 @@ class MyModel():
         file = 'checkpointResnet18Tra/resnet18_'+str(nModelo+1)+'.jpg'
         x = np.linspace(0,nEpocas,nEpocas)
         plt.figure()
-        plt.plot(x, self.trainAccuracies)
-        plt.plot(x, self.validationAccuracies)
+        plt.plot(x, self.trainAccuracies, label="Train")
+        plt.plot(x, self.validationAccuracies, label="Validation")
         
         plt.xlabel("Number of epoch")
         plt.ylabel("Accuracy")
