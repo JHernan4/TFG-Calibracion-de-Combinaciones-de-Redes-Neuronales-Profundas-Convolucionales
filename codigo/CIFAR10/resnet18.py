@@ -33,10 +33,10 @@ scheduler = lr_scheduler
 
 class MyModel():
 
-    def __init__(self, model):
+    def __init__(self, model, nEpocas=250):
         net = model
-        trainAccuracies = np.array()
-        validationAccuracies = np.array()
+        trainAccuracies = np.empty(nEpocas)
+        validationAccuracies = np.empty(nEpocas)
 
     def trainModel(self, trainLoader, validationLoader, seed, nModelo, path, nEpocas=250):
         loss = nn.CrossEntropyLoss()
@@ -90,7 +90,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def separarConjunto(dataset, trainSize=8000):
+def separarConjunto(dataset, trainSize=10000):
     val_set, train_set = torch.utils.data.random_split(dataset, [len(dataset)-trainSize, trainSize])
     print(len(val_set))
     print(len(train_set))
