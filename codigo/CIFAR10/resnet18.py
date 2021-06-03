@@ -83,7 +83,7 @@ class MyModel():
         return self.net
 
     def saveGraficas(self, nModelo, nEpocas=250):
-        file = '/checkpointResnet18Tra/resnet18_'+str(nModelo+1)+'.jpg'
+        file = 'checkpointResnet18Tra/resnet18_'+str(nModelo+1)+'.jpg'
         x = np.linspace(0,nEpocas,nEpocas)
         plt.figure()
         plt.plot(x, self.trainAccuracies)
