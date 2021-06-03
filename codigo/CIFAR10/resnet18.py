@@ -76,7 +76,7 @@ class MyModel():
                     correctV+=(t==index).sum().float()
             
             print("\tValidation accuracy: {:.2f}".format(100*correctV/totalV))
-            self.validationAccuracies[e] = correctT/totalT
+            self.validationAccuracies[e] = correctV/totalV
         
         torch.save(self.net.state_dict(), path)
         print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
