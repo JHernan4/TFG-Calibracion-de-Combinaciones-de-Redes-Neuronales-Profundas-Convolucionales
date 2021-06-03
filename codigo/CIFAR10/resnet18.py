@@ -21,6 +21,66 @@ import os
 import random
 import argparse
 
+def lr_scheduler(epoch):
+    if epoch < 150:
+        return 0.1
+    elif epoch < 250:
+        return 0.01
+    elif epoch < 350:
+        return 0.001
+
+scheduler = lr_scheduler
+
+class MyModel():
+
+    def __init__(self, model):
+        net = model
+        trainAccuracies = np.array()
+        validationAccuracies = np.array()
+
+    def trainModel(self, trainLoader, validationLoader, seed, nModelo, path, nEpocas=250):
+        loss = nn.CrossEntropyLoss()
+        sm = nn.Softmax(dim=1)
+        torch.manual_seed(seed)
+        
+        path = path + "_"+str(nModelo+1) + '.pt'
+        for e in range(nEpocas):
+            print("Epoca {}/{}".format(e+1, nEpocas))
+            correctT, totalT, correctV, totalV = 0,0,0,0
+            optimizer=torch.optim.SGD(model.parameters(),lr=scheduler(e),momentum=0.9)
+            self.net.train()
+            for x,t in trainLoader:
+                x,t=x.cuda(),t.cuda()
+                pred=self.net.forward(x)
+                cost=loss(pred,t)
+                cost.backward()
+                optimizer.step()
+                optimizer.zero_grad()
+
+                with torch.no_grad():
+                    pred = sm(pred)
+                    index = torch.argmax(pred, 1)
+                    totalT+=t.size(0)
+                    correctT+=(t==index).sum().float()
+            
+            print("\tTrain accuracy: {:.2f}".format(100*correctT/totalT))
+            self.trainAccuracies[e] = correctT/totalT
+
+            for x,t in validationLoader:
+                with torch.no_grad():
+                    pred=self.net.forward(x)
+                    pred = sm(pred)
+                    index = torch.argmax(pred, 1)
+                    totalV+=t.size(0)
+                    correctV+=(t==index).sum().float()
+            
+            print("\tValidation accuracy: {:.2f}".format(100*correctV/totalV))
+            self.validationAccuracies[e] = correctT/totalT
+        
+        torch.save(self.net.state_dict(), path)
+        print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
+        return self.net
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Parametros para configuracion del entrenamiento de las redes neuronales convolucionales')
@@ -30,13 +90,15 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def lr_scheduler(epoch):
-    if epoch < 150:
-        return 0.1
-    elif epoch < 250:
-        return 0.01
-    elif epoch < 350:
-        return 0.001
+def separarConjunto(dataset, trainSize=8000):
+    val_set, train_set = torch.utils.data.random_split(dataset, [len(dataset)-trainSize, trainSize])
+    print(len(val_set))
+    print(len(train_set))
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=100, shuffle=False, num_workers=workers)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=100, shuffle=False, num_workers=workers)
+
+    return train_loader, val_loader
+
 
 def seed_worker(worker_id):
     worker_seed=torch.initial_seed() % 2**32
@@ -44,38 +106,14 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
-def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
-    loss = nn.CrossEntropyLoss()
-    torch.manual_seed(seed)
-    model=ResNet18()
-    model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
-    path = path + "_"+str(nModelo+1) + '.pt'
-    for e in range(nEpocas):
-        ce=0.0
-        optimizer=torch.optim.SGD(model.parameters(),lr=scheduler(e),momentum=0.9)
-        model.train()
-        for x,t in trainLoader:
-            x,t=x.cuda(),t.cuda()
-            o=model.forward(x)
-            cost=loss(o,t)
-            cost.backward()
-            optimizer.step()
-            optimizer.zero_grad()
-        
-        print("Epoca {}/{}".format(e+1, nEpocas))
-    
-    torch.save(model.state_dict(), path)
-    print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
-    return model
-
 
 if __name__ == '__main__':
-    PATH = './checkpointResnet18/checkpoint'+'_resnet18'
+    PATH = './checkpointResnet18Tra/checkpoint'+'_resnet18'
     args = parse_args()
     nModelos = args.nModelos
     nEpocas = args.nEpocas
     
-    scheduler = lr_scheduler
+    
     print("==> Preparando dataset de entrenamiento...")
     cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
                         transforms.RandomHorizontalFlip(),
@@ -85,11 +123,15 @@ if __name__ == '__main__':
 
     workers = (int)(os.popen('nproc').read())
     cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
+    
        
-    train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
+    train_loader, validation_loader = separarConjunto(cifar10_train)
     
     print("==> Entrenando modelos...")
     models=[]
     for n in range(nModelos):
+        model=ResNet18()
+        model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
+        net = MyModel(model)
         seed = np.random.randint(2**10)
-        models.append(trainModel(train_loader, seed, n, PATH, nEpocas))
+        models.append(net.trainModel(train_loader, validation_loader, seed, n, PATH, nEpocas))
