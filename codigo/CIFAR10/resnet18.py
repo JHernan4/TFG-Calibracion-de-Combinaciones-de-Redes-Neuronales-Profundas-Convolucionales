@@ -49,34 +49,23 @@ class MyModel():
             correctT, totalT, correctV, totalV = 0,0,0,0
             optimizer=torch.optim.SGD(model.parameters(),lr=scheduler(e),momentum=0.9)
             self.net.train()
-            for x,t in trainLoader:
-                x,t=x.cuda(),t.cuda()
-                pred=self.net.forward(x)
-                cost=loss(pred,t)
-                cost.backward()
-                optimizer.step()
+            ce_train,ce_val=0,0
+            for x_train,t_train,x_val,t_val in zip(trainLoader, validationLoader):
+                x_train,t_train,x_val, t_val=x_train.cuda(),t_train.cuda(),x_val.cuda(),t_val.cuda()
                 optimizer.zero_grad()
 
-                with torch.no_grad():
-                    pred = sm(pred)
-                    index = torch.argmax(pred, 1)
-                    totalT+=t.size(0)
-                    correctT+=(t==index).sum().float()
+                pred_train=self.net.forward(x_train)
+                pred_val = self.net.forward(x_val)
+                loss_train=loss(pred_train,t_train)
+                loss_val=loss(pred_val, t_val)
+                loss_train.backward()
+                optimizer.step()
+                ce_train+=loss_train.data
+                ce_val+=loss_val.data
             
-            print("\tTrain accuracy: {:.2f}".format(100*correctT/totalT))
-            self.trainAccuracies[e] = correctT/totalT
-
-            for x,t in validationLoader:
-                with torch.no_grad():
-                    x,t=x.cuda(),t.cuda()
-                    pred=self.net.forward(x)
-                    pred = sm(pred)
-                    index = torch.argmax(pred, 1)
-                    totalV+=t.size(0)
-                    correctV+=(t==index).sum().float()
+            print("\tLoss accuracy: {:.2f}".format(loss_train/400))
             
-            print("\tValidation accuracy: {:.2f}".format(100*correctV/totalV))
-            self.validationAccuracies[e] = correctV/totalV
+            print("\tValidation accuracy: {:.2f}".format(loss_val/100))
         
         torch.save(self.net.state_dict(), path)
         print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
