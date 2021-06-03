@@ -34,9 +34,9 @@ scheduler = lr_scheduler
 class MyModel():
 
     def __init__(self, model, nEpocas=250):
-        net = model
-        trainAccuracies = np.empty(nEpocas)
-        validationAccuracies = np.empty(nEpocas)
+        self.net = model
+        self.trainAccuracies = np.empty(nEpocas)
+        self.validationAccuracies = np.empty(nEpocas)
 
     def trainModel(self, trainLoader, validationLoader, seed, nModelo, path, nEpocas=250):
         loss = nn.CrossEntropyLoss()
