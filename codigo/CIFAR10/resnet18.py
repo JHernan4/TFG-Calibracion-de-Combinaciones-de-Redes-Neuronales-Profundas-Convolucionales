@@ -50,6 +50,7 @@ class MyModel():
             ceT, ceV = 0,0
             optimizer=torch.optim.SGD(model.parameters(),lr=scheduler(e),momentum=0.9)
             self.net.train()
+            counter=0
             for x,t in trainLoader:
                 x,t=x.cuda(),t.cuda()
                 pred=self.net.forward(x)
@@ -58,6 +59,7 @@ class MyModel():
                 optimizer.step()
                 optimizer.zero_grad()
                 ceT+=cost.data
+                counter+=1
 
                 with torch.no_grad():
                     pred = sm(pred)
@@ -65,21 +67,22 @@ class MyModel():
                     totalT+=t.size(0)
                     correctT+=(t==index).sum().float()
             
-            print("\tTrain accuracy: {}".format(ceT/500.))
+            print("\tTrain accuracy: {}".format(ceT/counter))
             self.trainAccuracies[e] = correctT/totalT
-
+            counter=0
             for x,t in validationLoader:
                 with torch.no_grad():
                     x,t=x.cuda(),t.cuda()
                     pred=self.net.forward(x)
-                    costV = loss(x,t)
+                    costV = loss(pred,t)
                     pred = sm(pred)
                     index = torch.argmax(pred, 1)
                     totalV+=t.size(0)
                     correctV+=(t==index).sum().float()
-                    ceV=costV.data
+                    ceV+=costV.data
+                    counter+=1
             
-            print("\tValidation loss: {}".format(ceV/100.))
+            print("\tValidation loss: {}".format(ceV/counter))
             self.validationAccuracies[e] = correctV/totalV
         
         torch.save(self.net.state_dict(), path)
