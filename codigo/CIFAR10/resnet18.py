@@ -68,6 +68,7 @@ class MyModel():
 
             for x,t in validationLoader:
                 with torch.no_grad():
+                    x,t=x.cuda(),t.cuda()
                     pred=self.net.forward(x)
                     pred = sm(pred)
                     index = torch.argmax(pred, 1)
