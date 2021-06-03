@@ -63,9 +63,9 @@ class MyModel():
                 ce_train+=loss_train.data
                 ce_val+=loss_val.data
             
-            print("\tLoss accuracy: {:.2f}".format(loss_train/400))
+            print("\Train loss: {:.2f}".format(loss_train/400))
             
-            print("\tValidation accuracy: {:.2f}".format(loss_val/100))
+            print("\tValidation loss: {:.2f}".format(loss_val/100))
         
         torch.save(self.net.state_dict(), path)
         print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
