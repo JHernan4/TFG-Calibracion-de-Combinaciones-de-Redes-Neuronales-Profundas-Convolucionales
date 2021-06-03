@@ -47,25 +47,40 @@ class MyModel():
         for e in range(nEpocas):
             print("Epoca {}/{}".format(e+1, nEpocas))
             correctT, totalT, correctV, totalV = 0,0,0,0
+            ceT, ceV = 0,0
             optimizer=torch.optim.SGD(model.parameters(),lr=scheduler(e),momentum=0.9)
             self.net.train()
-            ce_train,ce_val=0,0
-            for x_train,t_train,x_val,t_val in zip(trainLoader, validationLoader):
-                x_train,t_train,x_val, t_val=x_train.cuda(),t_train.cuda(),x_val.cuda(),t_val.cuda()
-                optimizer.zero_grad()
-
-                pred_train=self.net.forward(x_train)
-                pred_val = self.net.forward(x_val)
-                loss_train=loss(pred_train,t_train)
-                loss_val=loss(pred_val, t_val)
-                loss_train.backward()
+            for x,t in trainLoader:
+                x,t=x.cuda(),t.cuda()
+                pred=self.net.forward(x)
+                cost=loss(pred,t)
+                cost.backward()
                 optimizer.step()
-                ce_train+=loss_train.data
-                ce_val+=loss_val.data
+                optimizer.zero_grad()
+                ceT+=cost.data
+
+                with torch.no_grad():
+                    pred = sm(pred)
+                    index = torch.argmax(pred, 1)
+                    totalT+=t.size(0)
+                    correctT+=(t==index).sum().float()
             
-            print("\Train loss: {:.2f}".format(loss_train/400))
+            print("\tTrain accuracy: {}".format(ceT/500.))
+            self.trainAccuracies[e] = correctT/totalT
+
+            for x,t in validationLoader:
+                with torch.no_grad():
+                    x,t=x.cuda(),t.cuda()
+                    pred=self.net.forward(x)
+                    costV = loss(x,t)
+                    pred = sm(pred)
+                    index = torch.argmax(pred, 1)
+                    totalV+=t.size(0)
+                    correctV+=(t==index).sum().float()
+                    ceV=costV.data
             
-            print("\tValidation loss: {:.2f}".format(loss_val/100))
+            print("\tValidation loss: {}".format(ceV/100.))
+            self.validationAccuracies[e] = correctV/totalV
         
         torch.save(self.net.state_dict(), path)
         print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
