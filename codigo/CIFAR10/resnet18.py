@@ -68,7 +68,7 @@ class MyModel():
                     correctT+=(t==index).sum().float()
             
             print("\tTrain accuracy: {}".format(ceT/counter))
-            self.trainAccuracies[e] = correctT/totalT
+            self.trainAccuracies[e] = ceT/counter
             counter=0
             for x,t in validationLoader:
                 with torch.no_grad():
@@ -83,7 +83,7 @@ class MyModel():
                     counter+=1
             
             print("\tValidation loss: {}".format(ceV/counter))
-            self.validationAccuracies[e] = correctV/totalV
+            self.validationAccuracies[e] = ceV/counter
         
         torch.save(self.net.state_dict(), path)
         print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
@@ -97,8 +97,8 @@ class MyModel():
         plt.plot(x, self.validationAccuracies, label="Validation")
         
         plt.xlabel("Number of epoch")
-        plt.ylabel("Accuracy")
-        plt.title("Accuracy Resnet18 on CIFAR10")
+        plt.ylabel("Loss")
+        plt.title("Loss Resnet18 on CIFAR10")
         plt.legend()
         plt.savefig(file)
  
