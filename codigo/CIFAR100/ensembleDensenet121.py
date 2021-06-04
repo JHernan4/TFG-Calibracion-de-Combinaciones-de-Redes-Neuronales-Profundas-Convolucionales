@@ -255,7 +255,7 @@ if __name__ == '__main__':
     logitsModelos = [] #lista que almacena los logits de todos los modelos
     logitsCalibrados = []
     for n in range(nModelos):
-        model = DenseNet121(num_classes=100)
+        model = DenseNet121(nClasses=100)
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         modelos.append(model)
