@@ -47,7 +47,7 @@ def seed_worker(worker_id):
 def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
     loss = nn.CrossEntropyLoss()
     torch.manual_seed(seed)
-    model=UPANets(16, 10, 1, 32)
+    model=UPANets(16, 100, 1, 32)
     model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
     path = path + "_"+str(nModelo+1) + '.pt'
     for e in range(nEpocas):
@@ -70,7 +70,7 @@ def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
 
 
 if __name__ == '__main__':
-    PATH = './checkpointEfficientNetB0/checkpoint'+'_efficientnetB0'
+    PATH = './checkpointUpaNets/checkpoint'+'_upanets'
     args = parse_args()
     nModelos = args.nModelos
     nEpocas = args.nEpocas
