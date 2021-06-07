@@ -65,10 +65,19 @@ def test(model, dataLoader):
 
 #genera los logits promedio del ensemble
 def generaLogitsPromedio(logitsModelos):
-    avgLogits = logitsModelos[0]/len(logitsModelos)
+    sm = nn.Softmax(dim=1)
+    logitsSoftmax = []
+    avgLogits = []
+
+    #aplicamos softmax a los logits
+    for logits in logitsModelos:
+        logitsSoftmax.append(sm(logits))
+
+    #generamos average de los logits
+    avgLogits = logitsSoftmax[0]/len(logitsSoftmax)
+    for n in range(1, len(avgLogits)):
+        avgLogits+=logitsSoftmax[n]/len(logitsSoftmax)
     
-    for n in range(1, len(logitsModelos)):
-        avgLogits+=logitsModelos[n]/len(logitsModelos)
 
     return avgLogits
 
@@ -277,9 +286,9 @@ if __name__ == '__main__':
     print("Medidas para el ensemble de {} modelos".format(nModelos))
     avgLogits = generaLogitsPromedio(logitsModelos)
     print("\tAccuracy: {:.2f}".format(100*calculaAcuracy(avgLogits, test_labels)))
-    ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(avgLogits), test_labels)
+    ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogits, test_labels)
     print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
     print("==> Aplicando Temp Scaling al ensemble")
     avgLogitsCalibrados = generaLogitsPromedio(logitsCalibrados)
-    ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(T_scaling(avgLogitsCalibrados, temperature)), test_labels)
+    ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogitsCalibrados, test_labels)
     print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
