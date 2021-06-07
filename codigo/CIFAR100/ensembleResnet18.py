@@ -280,9 +280,9 @@ if __name__ == '__main__':
     avgLogits = generaLogitsPromedio(logitsModelos)
     print("\tAccuracy: {:.2f}".format(100*calculaAcuracy(avgLogits, test_labels)))
     ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogits, test_labels)
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    print("\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNLL: {:.3f}".format(100*ECE, 100*MCE, BRIER, NNL))
     
     print("==> Aplicando Temp Scaling al ensemble")
     avgLogitsCalibrados = generaLogitsPromedio(logitsCalibrados)
     ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogitsCalibrados, test_labels)
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    print("\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNLL: {:.3f}".format(100*ECE, 100*MCE, BRIER, NNL))
