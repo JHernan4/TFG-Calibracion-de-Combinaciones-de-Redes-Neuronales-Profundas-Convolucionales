@@ -77,12 +77,10 @@ def generaLogitsPromedio(logitsModelos):
 
 #calcula el % de accuracy dados unos logits y labels
 def calculaAcuracy(logits, labels, batch_size=100):
-    sm = nn.Softmax(dim=1)
     correct, total=0,0
     list_logits = torch.chunk(logits, batch_size)
     labels_list = torch.chunk(labels, batch_size)
     for logit, t in zip(list_logits, labels_list):
-        logit = sm(logit)
         index = torch.argmax(logit, 1)
         total+=t.size(0)
         correct+=(t==index).sum().float()
