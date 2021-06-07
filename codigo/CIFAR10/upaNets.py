@@ -92,4 +92,6 @@ if __name__ == '__main__':
     models=[]
     for n in range(nModelos):
         seed = np.random.randint(2**10)
+        if n < 1:
+             continue
         models.append(trainModel(train_loader, seed, n, PATH, nEpocas))
