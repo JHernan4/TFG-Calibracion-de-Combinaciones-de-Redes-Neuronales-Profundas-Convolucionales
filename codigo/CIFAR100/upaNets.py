@@ -44,25 +44,36 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
-def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
+def trainModel(trainLoader, test_loader, seed, nModelo, path, nEpocas=250):
     loss = nn.CrossEntropyLoss()
     torch.manual_seed(seed)
     model=UPANets(16, 100, 1, 32)
     model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
     path = path + "_"+str(nModelo+1) + '.pt'
     for e in range(nEpocas):
-        ce=0.0
+        ce,counter, acc, total=0.0,0,0,0
         optimizer=torch.optim.SGD(model.parameters(),lr=scheduler(e),momentum=0.9)
         model.train()
         for x,t in trainLoader:
             x,t=x.cuda(),t.cuda()
+            optimizer.zero_grad()
             o=model.forward(x)
             cost=loss(o,t)
             cost.backward()
             optimizer.step()
-            optimizer.zero_grad()
+            ce+=cost.data
+            counter+=1
         
-        print("Epoca {}/{}".format(e+1, nEpocas))
+        with torch.no_grad():
+            model.eval()
+            for x,t in test_loader:
+                x,t=x.cuda(),t.cuda()
+                test_pred=model.forward(x)
+                index=torch.argmax(test_pred,1) #compute maximum
+                acc+=(index==t).sum().float() #accumulate MC error
+                total+=t.size(0)
+        
+        print("Epoca {}/{}:\n\tloss: {:.4f}\n\taccuracy: {:.4f}".format(e+1, nEpocas, ce/counter, 100*acc/10000.))
     
     torch.save(model.state_dict(), path)
     print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
@@ -77,19 +88,24 @@ if __name__ == '__main__':
     
     scheduler = lr_scheduler
     print("==> Preparando dataset de entrenamiento...")
-    cifar10_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
+    cifar100_transforms_train=transforms.Compose([transforms.RandomCrop(32, padding=4),
                         transforms.RandomHorizontalFlip(),
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+                        transforms.ToTensor(),
+                        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+    
+    cifar100_transforms_test=transforms.Compose([transforms.ToTensor(),
+                   transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
 
     workers = (int)(os.popen('nproc').read())
-    cifar10_train=datasets.CIFAR10('/tmp/',train=True,download=True,transform=cifar10_transforms_train)
-       
-    train_loader = torch.utils.data.DataLoader(cifar10_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
+    cifar100_train=datasets.CIFAR100('/tmp/',train=True,download=True,transform=cifar100_transforms_train)
+    cifar100_test = datasets.CIFAR100('/tmp/',train=False,download=False,transform=cifar100_transforms_test)
+
+    train_loader = torch.utils.data.DataLoader(cifar100_train,batch_size=100,shuffle=True,num_workers=workers, worker_init_fn=seed_worker)
+    test_loader = torch.utils.data.DataLoader(cifar100_test,batch_size=100,shuffle=False,num_workers=workers)
     
     print("==> Entrenando modelos...")
     models=[]
     for n in range(nModelos):
         seed = np.random.randint(2**10)
-        models.append(trainModel(train_loader, seed, n, PATH, nEpocas))
+        models.append(trainModel(train_loader, test_loader, seed, n, PATH, nEpocas))

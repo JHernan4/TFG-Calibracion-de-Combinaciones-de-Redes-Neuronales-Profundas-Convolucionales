@@ -74,7 +74,7 @@ def trainModel(trainLoader, test_loader, seed, nModelo, path, nEpocas=250):
                 acc+=(index==t).sum().float() #accumulate MC error
                 total+=t.size(0)
         
-        print("Epoca {}/{}:\n\tloss: {:.4f}\n\taccuracy: {:.4f}".format(e+1, nEpocas, ce/counter, 100*acc/total))
+        print("Epoca {}/{}:\n\tloss: {:.4f}\n\taccuracy: {:.4f}".format(e+1, nEpocas, ce/counter, 100*acc/10000.))
     
     torch.save(model.state_dict(), path)
     print("Modelo {} guardado correctamente en {}".format(nModelo+1, path))	
