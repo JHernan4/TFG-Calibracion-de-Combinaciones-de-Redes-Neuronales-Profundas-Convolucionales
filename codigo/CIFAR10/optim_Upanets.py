@@ -152,30 +152,22 @@ def test(epoch):
     # Save checkpoint.
     acc = 100.*correct/total
     if acc > best_acc:
-        print('Saving..')
-        state = {
-            'net': net.state_dict(),
-            'acc': acc,
-            'epoch': epoch,
-        }
-        if not os.path.isdir(save_path+'/checkpoint'):
-            os.mkdir(save_path+'/checkpoint')
-        torch.save(state, save_path+'/checkpoint/ckpt.pth')
         best_acc = acc
-        print('>>>best acc:', best_acc)
+
+    print('>>>best acc:', best_acc)
     
     return test_loss/(batch_idx+1), 100.*correct/total, best_acc
 
-test_loss = 0
-test_list = []
-train_list = []
-epoch_list = []
-train_acc_list = []
-test_acc_list = []
-
 PATH = './checkpointUpaNetsOptim/checkpoint'+'_upanets'
 np.random.seed(123)
-for n in range(5):
+for n in range(1, 5):
+    test_loss = 0
+    test_list = []
+    train_list = []
+    epoch_list = []
+    train_acc_list = []
+    test_acc_list = []
+    best_acc = 0
     seed = np.random.randint(2**10)
     torch.manual_seed(seed)
     print("Modelo {}".format(n+1))
@@ -195,28 +187,26 @@ for n in range(5):
         best_acc_line = 'best_acc: {0} '.format(best_acc)
         accuracy_line = 'train_acc: {0} %, test_acc: {1} % '.format(train_acc, test_acc)
         loss_line = 'train_loss: {0},e test_loss: {1} '.format(train_loss, test_loss)
-        print("\t"+best_acc_line)
-        if epoch % 1 == 0:
-            plt.subplot(2, 1, 1)
-            plt.plot(epoch_list, train_list, c = 'blue', label = 'train loss')
-            plt.plot(epoch_list, test_list, c = 'red', label = 'test loss')
-            plt.ylabel('loss')
-            plt.xlabel('epoch')
-            plt.legend(loc=0)
-        
-            plt.subplot(2, 1, 2)
-            plt.plot(epoch_list, train_acc_list, c = 'blue', label = 'train acc')
-            plt.plot(epoch_list, test_acc_list, c = 'red', label = 'test acc')
-            plt.ylabel('acc')
-            plt.xlabel('epoch')
-            plt.legend(loc=0)
-        
-            plt.savefig(save_path+'/Upanets_train_history_'+str(n+1)+'.png')
-#           plt.show()
 
         with open(save_path+'/logs.txt', 'a') as f:
             f.write(epoch_line + best_acc_line + accuracy_line + loss_line + '\n')
         scheduler.step()
     
     torch.save(net.state_dict(), PATH+"_"+str(n+1) + '.pt')
-    print("Modelo {} guardado correctamente.".format(n+1))	
+    print("Modelo {} guardado correctamente.".format(n+1))
+    plt.subplot(2, 1, 1)
+    plt.plot(epoch_list, train_list, c = 'blue', label = 'train loss')
+    plt.plot(epoch_list, test_list, c = 'red', label = 'test loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(loc=0)
+        
+    plt.subplot(2, 1, 2)
+    plt.plot(epoch_list, train_acc_list, c = 'blue', label = 'train acc')
+    plt.plot(epoch_list, test_acc_list, c = 'red', label = 'test acc')
+    plt.ylabel('acc')
+    plt.xlabel('epoch')
+    plt.legend(loc=0)
+        
+    plt.savefig(save_path+'/Upanets_train_history_'+str(n+1)+'.png')
+    print("Gráfica guardada correctamente")
