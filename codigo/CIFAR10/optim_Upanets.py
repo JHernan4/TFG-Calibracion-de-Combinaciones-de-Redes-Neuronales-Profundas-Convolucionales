@@ -149,9 +149,6 @@ def test(epoch):
             correct += predicted.eq(targets).sum().item()
             acc_list.append(100.*correct/total)
             
-            print()
-            print('>>>best acc: {0}, mean: {1}, std: {2}'.format(best_acc, round(np.mean(acc_list), 2), round(np.std(acc_list), 2)))
-            
     # Save checkpoint.
     acc = 100.*correct/total
     if acc > best_acc:
@@ -177,8 +174,10 @@ train_acc_list = []
 test_acc_list = []
 
 PATH = './checkpointUpaNetsOptim/checkpoint'+'_upanets'
-
+np.random.seed(123)
 for n in range(5):
+    seed = np.random.randint(2**10)
+    torch.manual_seed(seed)
     print("Modelo {}".format(n+1))
     for epoch in range(start_epoch, start_epoch+args.epochs):
    
