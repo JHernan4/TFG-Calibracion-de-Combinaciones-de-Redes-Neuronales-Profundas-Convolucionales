@@ -91,33 +91,7 @@ if args.datasets == 'cifar_10' or args.datasets == 'cifar_100':
         classes = 100
         img_size = 32
         
-elif args.datasets == 'tiny_imgnet':
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(64, padding=8),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
-    
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
-    
-    train_dir = './data/tiny-imagenet-200/train'
 
-    trainset = torchvision.datasets.ImageFolder(
-        train_dir, transform=transform_train)
-    trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=args.batch_size, shuffle=True, num_workers=0)
-    
-    test_dir = './data/tiny-imagenet-200/val'
-    testset = torchvision.datasets.ImageFolder(
-        test_dir, transform=transform_test) 
-    testloader = torch.utils.data.DataLoader(
-        testset, batch_size=args.batch_size, shuffle=False, num_workers=0)
-    classes = 200
-    img_size = 64
 # Model
 print('==> Building model..')
 net =  UPANets(args.filters, classes, args.blocks, img_size)
@@ -131,7 +105,6 @@ optimizer = optim.SGD(net.parameters(), lr=0.1,
                       momentum=0.9, weight_decay=0.0005)
 
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
-summary(net, (3, img_size, img_size))
 #%%
 # Training
 def train(epoch):
@@ -202,41 +175,49 @@ train_list = []
 epoch_list = []
 train_acc_list = []
 test_acc_list = []
-for epoch in range(start_epoch, start_epoch+args.epochs):
-   
-    epoch_list.append(epoch)
-    
-    train_loss, train_acc = train(epoch)
-    train_list.append(train_loss)
-    train_acc_list.append(train_acc)
-    
-    test_loss, test_acc, best_acc = test(epoch)
-    test_list.append(test_loss)
-    test_acc_list.append(test_acc)
-    
-    epoch_line = 'epoch: {0}/ total epoch: {1} '.format(epoch, args.epochs) 
-    best_acc_line = 'best_acc: {0} '.format(best_acc)
-    accuracy_line = 'train_acc: {0} %, test_acc: {1} % '.format(train_acc, test_acc)
-    loss_line = 'train_loss: {0},e test_loss: {1} '.format(train_loss, test_loss)
-    
-    if epoch % 1 == 0:
-        plt.subplot(2, 1, 1)
-        plt.plot(epoch_list, train_list, c = 'blue', label = 'train loss')
-        plt.plot(epoch_list, test_list, c = 'red', label = 'test loss')
-        plt.ylabel('loss')
-        plt.xlabel('epoch')
-        plt.legend(loc=0)
-        
-        plt.subplot(2, 1, 2)
-        plt.plot(epoch_list, train_acc_list, c = 'blue', label = 'train acc')
-        plt.plot(epoch_list, test_acc_list, c = 'red', label = 'test acc')
-        plt.ylabel('acc')
-        plt.xlabel('epoch')
-        plt.legend(loc=0)
-        
-        plt.savefig(save_path+'/Upanets_train_history.png')
-#       plt.show()
 
-    with open(save_path+'/logs.txt', 'a') as f:
-        f.write(epoch_line + best_acc_line + accuracy_line + loss_line + '\n')
-    scheduler.step()
+PATH = './checkpointUpaNetsOptim/checkpoint'+'_upanets'
+
+for n in range(5):
+    print("Modelo {}".format(n+1))
+    for epoch in range(start_epoch, start_epoch+args.epochs):
+   
+        epoch_list.append(epoch)
+    
+        train_loss, train_acc = train(epoch)
+        train_list.append(train_loss)
+        train_acc_list.append(train_acc)
+    
+        test_loss, test_acc, best_acc = test(epoch)
+        test_list.append(test_loss)
+        test_acc_list.append(test_acc)
+    
+        epoch_line = 'epoch: {0}/ total epoch: {1} '.format(epoch, args.epochs) 
+        best_acc_line = 'best_acc: {0} '.format(best_acc)
+        accuracy_line = 'train_acc: {0} %, test_acc: {1} % '.format(train_acc, test_acc)
+        loss_line = 'train_loss: {0},e test_loss: {1} '.format(train_loss, test_loss)
+    
+        if epoch % 1 == 0:
+            plt.subplot(2, 1, 1)
+            plt.plot(epoch_list, train_list, c = 'blue', label = 'train loss')
+            plt.plot(epoch_list, test_list, c = 'red', label = 'test loss')
+            plt.ylabel('loss')
+            plt.xlabel('epoch')
+            plt.legend(loc=0)
+        
+            plt.subplot(2, 1, 2)
+            plt.plot(epoch_list, train_acc_list, c = 'blue', label = 'train acc')
+            plt.plot(epoch_list, test_acc_list, c = 'red', label = 'test acc')
+            plt.ylabel('acc')
+            plt.xlabel('epoch')
+            plt.legend(loc=0)
+        
+            plt.savefig(save_path+'/Upanets_train_history_'+str(n+1)+'.png')
+#           plt.show()
+
+        with open(save_path+'/logs.txt', 'a') as f:
+            f.write(epoch_line + best_acc_line + accuracy_line + loss_line + '\n')
+        scheduler.step()
+    
+    torch.save(net.state_dict(), PATH+"_"+str(n+1) + '.pt')
+    print("Modelo {} guardado correctamente.".format(n+1))	
