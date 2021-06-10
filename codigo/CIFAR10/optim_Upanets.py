@@ -195,7 +195,7 @@ for n in range(5):
         best_acc_line = 'best_acc: {0} '.format(best_acc)
         accuracy_line = 'train_acc: {0} %, test_acc: {1} % '.format(train_acc, test_acc)
         loss_line = 'train_loss: {0},e test_loss: {1} '.format(train_loss, test_loss)
-    
+        print("\t"+best_acc_line)
         if epoch % 1 == 0:
             plt.subplot(2, 1, 1)
             plt.plot(epoch_list, train_list, c = 'blue', label = 'train loss')
