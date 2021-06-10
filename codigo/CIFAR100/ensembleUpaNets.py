@@ -1,10 +1,3 @@
-###########################################################################################################
-#                                       ensembleResnet50.py
-#programa que carga tantos modelos como se indique con el parametro nModelos (de su correspondiente .pt)
-#realiza su explotación para el dataset CIFAR100 y calcula el accuracy individual de cada uno de ellos. 
-# Finalmente, calcula el accuracy del average de todos estos modelos combinados (ensemble)
-###########################################################################################################
-
 import torch
 if not torch.cuda.is_available():
     print("Error al cargar GPU")
@@ -16,7 +9,7 @@ from torch import nn
 import sys
 sys.path.append("../models")
 sys.path.append("../calibration")
-from efficientnet import EfficientNetB0
+from upanets import UPANets
 from utils_calibration import compute_calibration_measures
 import numpy as np
 import os
@@ -66,22 +59,29 @@ def test(model, dataLoader):
 
 #genera los logits promedio del ensemble
 def generaLogitsPromedio(logitsModelos):
-    avgLogits = logitsModelos[0]/len(logitsModelos)
+    sm = nn.Softmax(dim=1)
+    logitsSoftmax = []
+    avgLogits = []
+
+    #aplicamos softmax a los logits
+    for logits in logitsModelos:
+        logitsSoftmax.append(sm(logits))
+
+    #generamos average de los logits
+    avgLogits = logitsSoftmax[0]/len(logitsSoftmax)
+    for n in range(1, len(logitsSoftmax)):
+        avgLogits+=logitsSoftmax[n]/len(logitsSoftmax)
     
-    for n in range(1, len(logitsModelos)):
-        avgLogits+=logitsModelos[n]/len(logitsModelos)
 
     return avgLogits
 
 
 #calcula el % de accuracy dados unos logits y labels
 def calculaAcuracy(logits, labels, batch_size=100):
-    sm = nn.Softmax(dim=1)
     correct, total=0,0
     list_logits = torch.chunk(logits, batch_size)
     labels_list = torch.chunk(labels, batch_size)
     for logit, t in zip(list_logits, labels_list):
-        logit = sm(logit)
         index = torch.argmax(logit, 1)
         total+=t.size(0)
         correct+=(t==index).sum().float()
@@ -230,9 +230,9 @@ if __name__ == '__main__':
 
     softmax = nn.Softmax(dim=1)
 
-    testSize=8000 #tamanio del conjunto de test 
+    testSize=9000 #tamanio del conjunto de test 
     args = parse_args()
-    PATH = './checkpointEfficientNetB0/checkpoint'+'_efficientnetB0'
+    PATH = './checkpointUpaNets/checkpoint'+'_upanets'
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
@@ -256,7 +256,7 @@ if __name__ == '__main__':
     logitsModelos = [] #lista que almacena los logits de todos los modelos
     logitsCalibrados = []
     for n in range(nModelos):
-        model = EfficientNetB0(100)
+        model = model=UPANets(16, 100, 1, 32)
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         modelos.append(model)
@@ -278,9 +278,10 @@ if __name__ == '__main__':
     print("Medidas para el ensemble de {} modelos".format(nModelos))
     avgLogits = generaLogitsPromedio(logitsModelos)
     print("\tAccuracy: {:.2f}".format(100*calculaAcuracy(avgLogits, test_labels)))
-    ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(avgLogits), test_labels)
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogits, test_labels)
+    print("\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNLL: {:.3f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    
     print("==> Aplicando Temp Scaling al ensemble")
     avgLogitsCalibrados = generaLogitsPromedio(logitsCalibrados)
-    ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(T_scaling(avgLogitsCalibrados, temperature)), test_labels)
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogitsCalibrados, test_labels)
+    print("\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNLL: {:.3f}".format(100*ECE, 100*MCE, BRIER, NNL))
