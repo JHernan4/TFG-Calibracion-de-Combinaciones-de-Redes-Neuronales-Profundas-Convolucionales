@@ -93,21 +93,10 @@ if args.datasets == 'cifar_10' or args.datasets == 'cifar_100':
         
 
 # Model
-print('==> Building model..')
-net =  UPANets(args.filters, classes, args.blocks, img_size)
-net = net.to(device)
-if device == 'cuda':
-    net = torch.nn.DataParallel(net)
-    cudnn.benchmark = True
 
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.1,
-                      momentum=0.9, weight_decay=0.0005)
-
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 #%%
 # Training
-def train(epoch):
+def train(net, optimizer, epoch):
     print('Epoch:{0}/{1}'.format(epoch, args.epochs))
     net.train()
     
@@ -129,7 +118,7 @@ def train(epoch):
 
     return train_loss/(batch_idx+1), 100.*correct/total
 
-def test(epoch):
+def test(net, epoch):
     global best_acc
     net.eval()
     test_loss = 0
@@ -153,11 +142,10 @@ def test(epoch):
     acc = 100.*correct/total
     if acc > best_acc:
         best_acc = acc
-    
+
     print('>>>best acc:', best_acc)
     
     return test_loss/(batch_idx+1), 100.*correct/total, best_acc
-
 
 PATH = './checkpointUpaNetsOptim/checkpoint'+'_upanets'
 np.random.seed(123)
@@ -171,16 +159,29 @@ for n in range(5):
     best_acc = 0
     seed = np.random.randint(2**10)
     torch.manual_seed(seed)
+    if n < 2:
+        continue
     print("Modelo {}".format(n+1))
+    print('==> Building model..')
+    net =  UPANets(args.filters, classes, args.blocks, img_size)
+    net = net.to(device)
+    if device == 'cuda':
+        net = torch.nn.DataParallel(net)
+        cudnn.benchmark = True
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=0.1,
+                      momentum=0.9, weight_decay=0.0005)
+
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
     for epoch in range(start_epoch, start_epoch+args.epochs):
-   
         epoch_list.append(epoch)
     
-        train_loss, train_acc = train(epoch)
+        train_loss, train_acc = train(net, optimizer, epoch)
         train_list.append(train_loss)
         train_acc_list.append(train_acc)
     
-        test_loss, test_acc, best_acc = test(epoch)
+        test_loss, test_acc, best_acc = test(net, epoch)
         test_list.append(test_loss)
         test_acc_list.append(test_acc)
     
@@ -210,4 +211,5 @@ for n in range(5):
     plt.legend(loc=0)
         
     plt.savefig(save_path+'/Upanets_train_history_'+str(n+1)+'.png')
+    plt.clf()
     print("Gráfica guardada correctamente")

@@ -149,7 +149,7 @@ def test(net, epoch):
 
 PATH = './checkpointUpaNetsOptim/checkpoint'+'_upanets'
 np.random.seed(123)
-for n in range(1, 5):
+for n in range(5):
     test_loss = 0
     test_list = []
     train_list = []
@@ -159,6 +159,8 @@ for n in range(1, 5):
     best_acc = 0
     seed = np.random.randint(2**10)
     torch.manual_seed(seed)
+    if n < 2:
+        continue
     print("Modelo {}".format(n+1))
     print('==> Building model..')
     net =  UPANets(args.filters, classes, args.blocks, img_size)
@@ -173,7 +175,6 @@ for n in range(1, 5):
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
     for epoch in range(start_epoch, start_epoch+args.epochs):
-   
         epoch_list.append(epoch)
     
         train_loss, train_acc = train(net, optimizer, epoch)
@@ -210,4 +211,5 @@ for n in range(1, 5):
     plt.legend(loc=0)
         
     plt.savefig(save_path+'/Upanets_train_history_'+str(n+1)+'.png')
+    plt.clf()
     print("Gráfica guardada correctamente")
