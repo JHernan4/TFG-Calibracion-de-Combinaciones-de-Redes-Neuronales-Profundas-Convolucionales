@@ -22,7 +22,7 @@ def compute_calibration_measures(predictions: torch.tensor ,true_labels: torch.t
         conf_bin,prob,samples_per_bin=average_confidence_per_bin(predictions,n_bins=bins,apply_softmax=False)
         ECE,_=compute_ECE(acc_bin,conf_bin,samples_per_bin)
         MCE,_=compute_MCE(acc_bin,conf_bin,samples_per_bin)
-        reliability_histogram(prob, acc_bin, 0, 'paco', ECE)
+        reliability_histogram(prob, acc_bin, 0, file, ECE)
         '''Brier Score'''
         max_val=predictions.size(1)
         t_one_hot=categorical_to_one_hot(true_labels,max_val)
