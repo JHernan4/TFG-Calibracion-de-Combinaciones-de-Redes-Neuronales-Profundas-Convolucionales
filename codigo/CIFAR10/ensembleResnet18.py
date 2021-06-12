@@ -145,7 +145,7 @@ def calc_bins(logits, labels, batch_size=100):
     preds = []
     labels_oneh = []
     for logit, label in zip(list_preds, list_labels):
-        pred = logit
+        pred = sm(logit)
         pred = pred.cpu().detach().numpy()
         label_oneh = torch.nn.functional.one_hot(label, num_classes=10)
         label_oneh = label_oneh.cpu().detach().numpy()
@@ -214,8 +214,8 @@ def draw_reliability_graph(preds, labels, file):
     plt.gca().set_aspect('equal', adjustable='box')
 
     # ECE and MCE legend
-    ECE_patch = mpatches.Patch(color='green')
-    MCE_patch = mpatches.Patch(color='red')
+    ECE_patch = mpatches.Patch(color='green', label='ECE = {:.2f}%'.format(ECE*100))
+    MCE_patch = mpatches.Patch(color='red', label='MCE = {:.2f}%'.format(MCE*100))
     plt.legend(handles=[ECE_patch, MCE_patch])
 
     #plt.show()
@@ -266,7 +266,6 @@ if __name__ == '__main__':
         ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logits), test_labels)
         print("Medidas SIN CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
-        draw_reliability_graph(logits, test_labels, "graficaCalibracion_modelo_"+str(n+1)+'.png')
         print("==> Aplicando Temp Scaling...")
         temperature = temperatureScaling(model, validation_loader)
         logitsCal = T_scaling(logits, temperature)
@@ -274,7 +273,6 @@ if __name__ == '__main__':
         ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels)
         print("Medidas CON CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
-        draw_reliability_graph(logitsCal, test_labels, "graficaCalibracion_modelo_"+str(n+1)+'Calibrado.png')
 
     print("Medidas para el ensemble de {} modelos".format(nModelos))
     avgLogits = generaLogitsPromedio(logitsModelos)
