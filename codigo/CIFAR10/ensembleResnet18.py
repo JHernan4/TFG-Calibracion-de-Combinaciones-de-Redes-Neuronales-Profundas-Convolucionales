@@ -274,6 +274,7 @@ if __name__ == '__main__':
         ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels)
         print("Medidas CON CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+        draw_reliability_graph(logitsCal, test_labels, "graficaCalibracion_modelo_"+str(n+1)+'Calibrado.png')
 
     print("Medidas para el ensemble de {} modelos".format(nModelos))
     avgLogits = generaLogitsPromedio(logitsModelos)
