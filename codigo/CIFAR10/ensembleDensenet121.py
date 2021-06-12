@@ -50,6 +50,7 @@ def test(model, dataLoader):
     total, correct = 0,0
     sm = nn.Softmax(dim=1)
     with torch.no_grad():
+        model.eval()
         for x,t in dataLoader:
             x,t= x.cuda(), t.cuda()
             pred = model.forward(x)
