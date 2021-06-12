@@ -245,14 +245,14 @@ if __name__ == '__main__':
     workers = (int)(os.popen('nproc').read())
 
     #transformaciones que se aplican al dataset
-    cifar10_transforms_test=transforms.Compose([transforms.ToTensor(),
+    cifar100_transforms_test=transforms.Compose([transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     
     #descarga del dataset y aplicacion de las transformaciones
-    cifar10_test=datasets.CIFAR10('/tmp/',train=False,download=True,transform=cifar10_transforms_test)
+    cifar100_test=datasets.CIFAR100('/tmp/',train=False,download=True,transform=cifar100_transforms_test)
 
     #separa dataset en TEST y VALIDACION
-    test_loader, validation_loader = separarDataset(cifar10_test, testSize)
+    test_loader, validation_loader = separarDataset(cifar100_test, testSize)
 
     #almacena las etiquetas del conjunto de test
     test_labels = torch.LongTensor()
