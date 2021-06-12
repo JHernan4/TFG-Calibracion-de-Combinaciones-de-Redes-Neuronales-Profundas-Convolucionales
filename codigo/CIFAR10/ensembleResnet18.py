@@ -266,6 +266,7 @@ if __name__ == '__main__':
         ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logits), test_labels)
         print("Medidas SIN CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+        draw_reliability_graph(logits, test_labels, "graficaCalibracion_modelo_"+str(n+1)+'.png')
         print("==> Aplicando Temp Scaling...")
         temperature = temperatureScaling(model, validation_loader)
         logitsCal = T_scaling(logits, temperature)
