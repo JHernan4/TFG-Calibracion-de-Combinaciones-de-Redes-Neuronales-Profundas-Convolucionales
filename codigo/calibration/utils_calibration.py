@@ -10,6 +10,7 @@ from config import *
 
 #Custom
 from utils_nnets import categorical_to_one_hot
+import matplotlib.pyplot as plt
 
 ## Compute Calibration Metrics
 def compute_calibration_measures(predictions: torch.tensor ,true_labels: torch.tensor ,apply_softmax: bool ,bins: int, file=None) -> list:
