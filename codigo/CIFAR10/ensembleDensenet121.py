@@ -239,7 +239,7 @@ if __name__ == '__main__':
 
     testSize=8000 #tamanio del conjunto de test 
     args = parse_args()
-    PATH = './checkpointDensenet121_checkpoint'+'_densenet121'
+    PATH = './checkpointDensenet121/checkpoint'+'_densenet121'
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
