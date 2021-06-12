@@ -38,7 +38,7 @@ def seed_worker(worker_id):
 
 #recibe el dataset y devuelve dos conjuntos, uno de test (90%) y otro de validacion (10%)
 def separarDataset(dataset, testSize=9000):
-    val_set, test_set = torch.utils.data.random_split(cifar10_test, [len(dataset)-testSize, testSize])
+    val_set, test_set = torch.utils.data.random_split(dataset, [len(dataset)-testSize, testSize])
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=100, shuffle=False, num_workers=workers)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=100, shuffle=False, num_workers=workers)
 
@@ -75,7 +75,7 @@ def generaLogitsPromedio(logitsModelos):
 
     #generamos average de los logits
     avgLogits = logitsSoftmax[0]/len(logitsSoftmax)
-    for n in range(1, len(avgLogits)):
+    for n in range(1, len(logitsSoftmax)):
         avgLogits+=logitsSoftmax[n]/len(logitsSoftmax)
     
 
@@ -84,12 +84,10 @@ def generaLogitsPromedio(logitsModelos):
 
 #calcula el % de accuracy dados unos logits y labels
 def calculaAcuracy(logits, labels, batch_size=100):
-    sm = nn.Softmax(dim=1)
     correct, total=0,0
     list_logits = torch.chunk(logits, batch_size)
     labels_list = torch.chunk(labels, batch_size)
     for logit, t in zip(list_logits, labels_list):
-        logit = sm(logit)
         index = torch.argmax(logit, 1)
         total+=t.size(0)
         correct+=(t==index).sum().float()
@@ -264,7 +262,7 @@ if __name__ == '__main__':
     logitsModelos = [] #lista que almacena los logits de todos los modelos
     logitsCalibrados = []
     for n in range(nModelos):
-        model = EfficientNetB0()
+        model = model=EfficientNetB0()
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         modelos.append(model)
@@ -287,8 +285,9 @@ if __name__ == '__main__':
     avgLogits = generaLogitsPromedio(logitsModelos)
     print("\tAccuracy: {:.2f}".format(100*calculaAcuracy(avgLogits, test_labels)))
     ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogits, test_labels)
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    print("\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNLL: {:.3f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    
     print("==> Aplicando Temp Scaling al ensemble")
     avgLogitsCalibrados = generaLogitsPromedio(logitsCalibrados)
     ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogitsCalibrados, test_labels)
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    print("\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNLL: {:.3f}".format(100*ECE, 100*MCE, BRIER, NNL))
