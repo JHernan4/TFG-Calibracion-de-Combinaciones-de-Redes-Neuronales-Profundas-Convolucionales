@@ -38,7 +38,7 @@ def seed_worker(worker_id):
 
 #recibe el dataset y devuelve dos conjuntos, uno de test (90%) y otro de validacion (10%)
 def separarDataset(dataset, testSize=9000):
-    val_set, test_set = torch.utils.data.random_split(cifar10_test, [len(dataset)-testSize, testSize])
+    val_set, test_set = torch.utils.data.random_split(dataset, [len(dataset)-testSize, testSize])
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=100, shuffle=False, num_workers=workers)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=100, shuffle=False, num_workers=workers)
 
@@ -50,6 +50,7 @@ def test(model, dataLoader):
     total, correct = 0,0
     sm = nn.Softmax(dim=1)
     with torch.no_grad():
+        model.eval()
         for x,t in dataLoader:
             x,t= x.cuda(), t.cuda()
             pred = model.forward(x)
@@ -65,22 +66,29 @@ def test(model, dataLoader):
 
 #genera los logits promedio del ensemble
 def generaLogitsPromedio(logitsModelos):
-    avgLogits = logitsModelos[0]/len(logitsModelos)
+    sm = nn.Softmax(dim=1)
+    logitsSoftmax = []
+    avgLogits = []
+
+    #aplicamos softmax a los logits
+    for logits in logitsModelos:
+        logitsSoftmax.append(sm(logits))
+
+    #generamos average de los logits
+    avgLogits = logitsSoftmax[0]/len(logitsSoftmax)
+    for n in range(1, len(logitsSoftmax)):
+        avgLogits+=logitsSoftmax[n]/len(logitsSoftmax)
     
-    for n in range(1, len(logitsModelos)):
-        avgLogits+=logitsModelos[n]/len(logitsModelos)
 
     return avgLogits
 
 
 #calcula el % de accuracy dados unos logits y labels
 def calculaAcuracy(logits, labels, batch_size=100):
-    sm = nn.Softmax(dim=1)
     correct, total=0,0
     list_logits = torch.chunk(logits, batch_size)
     labels_list = torch.chunk(labels, batch_size)
     for logit, t in zip(list_logits, labels_list):
-        logit = sm(logit)
         index = torch.argmax(logit, 1)
         total+=t.size(0)
         correct+=(t==index).sum().float()
@@ -90,8 +98,8 @@ def calculaAcuracy(logits, labels, batch_size=100):
 
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
-def CalculaCalibracion(logits,labels):
-    return compute_calibration_measures(logits, labels, False, 100)
+def CalculaCalibracion(logits,labels,file=None):
+    return compute_calibration_measures(logits, labels, False, 10, file)
     
         
 
@@ -138,7 +146,92 @@ def temperatureScaling(model, validationLoader):
     print("Final T_scaling factor con SGD: {:.2f}".format(temperature.item()))
     return temperature.cpu()
 
+def calc_bins(logits, labels, batch_size=100):
+    sm = nn.Softmax(dim=1)
+    list_preds = torch.chunk(logits, batch_size)
+    list_labels = torch.chunk(labels, batch_size)
+    preds = []
+    labels_oneh = []
+    for logit, label in zip(list_preds, list_labels):
+        pred = sm(logit)
+        pred = pred.cpu().detach().numpy()
+        label_oneh = torch.nn.functional.one_hot(label, num_classes=10)
+        label_oneh = label_oneh.cpu().detach().numpy()
+        preds.extend(pred)
+        labels_oneh.extend(label_oneh)
+    
+    preds = np.array(preds).flatten()
+    labels_oneh = np.array(labels_oneh).flatten()
+    # Assign each prediction to a bin
+    num_bins = 10
+    bins = np.linspace(0.1, 1, num_bins)
+    binned = np.digitize(preds, bins)
+
+    # Save the accuracy, confidence and size of each bin
+    bin_accs = np.zeros(num_bins)
+    bin_confs = np.zeros(num_bins)
+    bin_sizes = np.zeros(num_bins)
+
+    for bin in range(num_bins):
+        bin_sizes[bin] = len(preds[binned == bin])
+        if bin_sizes[bin] > 0:
+            bin_accs[bin] = (labels_oneh[binned==bin]).sum() / bin_sizes[bin]
+            bin_confs[bin] = (preds[binned==bin]).sum() / bin_sizes[bin]
+
+    return bins, binned, bin_accs, bin_confs, bin_sizes
+
+def get_metrics(preds, labels):
+  ECE = 0
+  MCE = 0
+  bins, _, bin_accs, bin_confs, bin_sizes = calc_bins(preds, labels)
+
+  for i in range(len(bins)):
+    abs_conf_dif = abs(bin_accs[i] - bin_confs[i])
+    ECE += (bin_sizes[i] / sum(bin_sizes)) * abs_conf_dif
+    MCE = max(MCE, abs_conf_dif)
+
+  return ECE, MCE
+
+def draw_reliability_graph(preds, labels, file):
+    ECE, MCE = get_metrics(preds, labels)
+    bins, _, bin_accs, _, _ = calc_bins(preds, labels)
+
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.gca()
+
+    # x/y limits
+    ax.set_xlim(0, 1.05)
+    ax.set_ylim(0, 1)
+
+    # x/y labels
+    plt.xlabel('Confidence')
+    plt.ylabel('Accuracy')
+
+    # Create grid
+    ax.set_axisbelow(True) 
+    ax.grid(color='gray', linestyle='dashed')
+
+    # Error bars
+    plt.bar(bins, bins,  width=0.1, alpha=0.3, edgecolor='black', color='r', hatch='\\')
+
+    # Draw bars and identity line
+    plt.bar(bins, bin_accs, width=0.1, alpha=1, edgecolor='black', color='b')
+    plt.plot([0,1],[0,1], '--', color='gray', linewidth=2)
+
+    # Equally spaced axes
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    # ECE and MCE legend
+    ECE_patch = mpatches.Patch(color='green', label='ECE = {:.2f}%'.format(ECE*100))
+    MCE_patch = mpatches.Patch(color='red', label='MCE = {:.2f}%'.format(MCE*100))
+    plt.legend(handles=[ECE_patch, MCE_patch])
+
+    #plt.show()
   
+    plt.savefig(file, bbox_inches='tight')
+
+    #draw_reliability_graph(preds)
+   
 
 if __name__ == '__main__':
 
@@ -170,7 +263,7 @@ if __name__ == '__main__':
     logitsModelos = [] #lista que almacena los logits de todos los modelos
     logitsCalibrados = []
     for n in range(nModelos):
-        model = ResNet50()
+        model = ResNet50(num_classes=10)
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         modelos.append(model)
@@ -178,23 +271,24 @@ if __name__ == '__main__':
         logits, acc = test(model, test_loader)
         logitsModelos.append(logits)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
-        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logits), test_labels)
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logits), test_labels, "modelo_"+str(n+1)+"no_calibrado")
         print("Medidas SIN CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
         print("==> Aplicando Temp Scaling...")
         temperature = temperatureScaling(model, validation_loader)
         logitsCal = T_scaling(logits, temperature)
         logitsCalibrados.append(logitsCal)
-        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels)
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels, "modelo_"+str(n+1)+"calibrado")
         print("Medidas CON CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
 
     print("Medidas para el ensemble de {} modelos".format(nModelos))
     avgLogits = generaLogitsPromedio(logitsModelos)
     print("\tAccuracy: {:.2f}".format(100*calculaAcuracy(avgLogits, test_labels)))
-    ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(avgLogits), test_labels)
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogits, test_labels)
+    print("\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNLL: {:.3f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    
     print("==> Aplicando Temp Scaling al ensemble")
     avgLogitsCalibrados = generaLogitsPromedio(logitsCalibrados)
-    ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(T_scaling(avgLogitsCalibrados, temperature)), test_labels)
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogitsCalibrados, test_labels)
+    print("\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNLL: {:.3f}".format(100*ECE, 100*MCE, BRIER, NNL))
