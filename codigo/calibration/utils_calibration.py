@@ -1,5 +1,4 @@
 # Torch
-from codigo.CIFAR10.ensembleResnet18 import draw_reliability_graph
 import torch
 from torch.nn.functional import softmax
 
@@ -13,7 +12,7 @@ from config import *
 from utils_nnets import categorical_to_one_hot
 
 ## Compute Calibration Metrics
-def compute_calibration_measures(predictions: torch.tensor ,true_labels: torch.tensor ,apply_softmax: bool ,bins: int) -> list:
+def compute_calibration_measures(predictions: torch.tensor ,true_labels: torch.tensor ,apply_softmax: bool ,bins: int, file=None) -> list:
 
         predictions = softmax(predictions,1) if apply_softmax else predictions
 
