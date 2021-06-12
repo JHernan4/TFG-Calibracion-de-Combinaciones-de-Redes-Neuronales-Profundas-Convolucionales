@@ -145,7 +145,7 @@ def calc_bins(logits, labels, batch_size=100):
     preds = []
     labels_oneh = []
     for logit, label in zip(list_preds, list_labels):
-        pred = sm(logit)
+        pred = logit
         pred = pred.cpu().detach().numpy()
         label_oneh = torch.nn.functional.one_hot(label, num_classes=10)
         label_oneh = label_oneh.cpu().detach().numpy()
@@ -214,8 +214,8 @@ def draw_reliability_graph(preds, labels, file):
     plt.gca().set_aspect('equal', adjustable='box')
 
     # ECE and MCE legend
-    ECE_patch = mpatches.Patch(color='green', label='ECE = {:.2f}%'.format(ECE*100))
-    MCE_patch = mpatches.Patch(color='red', label='MCE = {:.2f}%'.format(MCE*100))
+    ECE_patch = mpatches.Patch(color='green')
+    MCE_patch = mpatches.Patch(color='red')
     plt.legend(handles=[ECE_patch, MCE_patch])
 
     #plt.show()
