@@ -158,7 +158,8 @@ for n in range(5):
     best_acc = 0
     seed = np.random.randint(2**10)
     torch.manual_seed(seed)
-    
+    if n < 2:
+       continue
     print("Modelo {}".format(n+1))
     print('==> Building model..')
     net =  UPANets(args.filters, classes, args.blocks, img_size)
