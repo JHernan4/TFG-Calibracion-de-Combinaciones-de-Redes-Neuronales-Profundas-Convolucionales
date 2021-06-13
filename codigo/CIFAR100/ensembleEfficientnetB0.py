@@ -232,7 +232,7 @@ if __name__ == '__main__':
 
     testSize=8000 #tamanio del conjunto de test 
     args = parse_args()
-    PATH = './checkpointEfficientNetB0/checkpoint'+'_efficientnetB0'
+    PATH = './checkpointEfficientNetOptim/checkpoint'+'_efficientnetB0'
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
