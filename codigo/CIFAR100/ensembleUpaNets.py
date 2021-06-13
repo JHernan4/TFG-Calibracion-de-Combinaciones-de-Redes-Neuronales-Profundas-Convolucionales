@@ -92,7 +92,7 @@ def calculaAcuracy(logits, labels, batch_size=100):
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
 def CalculaCalibracion(logits,labels, file=None):
-    return compute_calibration_measures(logits, labels, False, 100, file)
+    return compute_calibration_measures(logits, labels, False, 10, file)
     
         
 
