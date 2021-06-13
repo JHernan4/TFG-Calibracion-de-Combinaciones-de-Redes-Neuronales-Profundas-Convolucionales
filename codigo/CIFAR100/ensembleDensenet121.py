@@ -50,6 +50,7 @@ def test(model, dataLoader):
     total, correct = 0,0
     sm = nn.Softmax(dim=1)
     with torch.no_grad():
+        model.eval()
         for x,t in dataLoader:
             x,t= x.cuda(), t.cuda()
             pred = model.forward(x)
@@ -65,22 +66,29 @@ def test(model, dataLoader):
 
 #genera los logits promedio del ensemble
 def generaLogitsPromedio(logitsModelos):
-    avgLogits = logitsModelos[0]/len(logitsModelos)
+    sm = nn.Softmax(dim=1)
+    logitsSoftmax = []
+    avgLogits = []
+
+    #aplicamos softmax a los logits
+    for logits in logitsModelos:
+        logitsSoftmax.append(sm(logits))
+
+    #generamos average de los logits
+    avgLogits = logitsSoftmax[0]/len(logitsSoftmax)
+    for n in range(1, len(logitsSoftmax)):
+        avgLogits+=logitsSoftmax[n]/len(logitsSoftmax)
     
-    for n in range(1, len(logitsModelos)):
-        avgLogits+=logitsModelos[n]/len(logitsModelos)
 
     return avgLogits
 
 
 #calcula el % de accuracy dados unos logits y labels
 def calculaAcuracy(logits, labels, batch_size=100):
-    sm = nn.Softmax(dim=1)
     correct, total=0,0
     list_logits = torch.chunk(logits, batch_size)
     labels_list = torch.chunk(labels, batch_size)
     for logit, t in zip(list_logits, labels_list):
-        logit = sm(logit)
         index = torch.argmax(logit, 1)
         total+=t.size(0)
         correct+=(t==index).sum().float()
@@ -90,8 +98,8 @@ def calculaAcuracy(logits, labels, batch_size=100):
 
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
-def CalculaCalibracion(logits,labels):
-    return compute_calibration_measures(logits, labels, False, 100)
+def CalculaCalibracion(logits,labels,file=None):
+    return compute_calibration_measures(logits, labels, False, 10, file)
     
         
 
@@ -231,7 +239,7 @@ if __name__ == '__main__':
 
     testSize=8000 #tamanio del conjunto de test 
     args = parse_args()
-    PATH = './checkpointDensenet121/checkpoint_densenet121' #ruta para lectura de los checkpoints de los modelos
+    PATH = './checkpointDensenet121/checkpoint'+'_densenet121'
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
@@ -255,7 +263,7 @@ if __name__ == '__main__':
     logitsModelos = [] #lista que almacena los logits de todos los modelos
     logitsCalibrados = []
     for n in range(nModelos):
-        model = DenseNet121(nClasses=100)
+        model=DenseNet121(nClasses=100)
         model = torch.nn.DataParallel(model, device_ids=[0,1]).cuda()
         model.load_state_dict(torch.load(PATH+"_"+str(n+1) + '.pt'))
         modelos.append(model)
@@ -263,23 +271,24 @@ if __name__ == '__main__':
         logits, acc = test(model, test_loader)
         logitsModelos.append(logits)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
-        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logits), test_labels)
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logits), test_labels, "DENSENET_modelo_"+str(n+1)+"no_calibrado")
         print("Medidas SIN CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
         print("==> Aplicando Temp Scaling...")
         temperature = temperatureScaling(model, validation_loader)
         logitsCal = T_scaling(logits, temperature)
         logitsCalibrados.append(logitsCal)
-        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels)
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels, "DENSENET_modelo_"+str(n+1)+"calibrado")
         print("Medidas CON CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
 
     print("Medidas para el ensemble de {} modelos".format(nModelos))
     avgLogits = generaLogitsPromedio(logitsModelos)
     print("\tAccuracy: {:.2f}".format(100*calculaAcuracy(avgLogits, test_labels)))
-    ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(avgLogits), test_labels)
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogits, test_labels)
+    print("\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNLL: {:.3f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    
     print("==> Aplicando Temp Scaling al ensemble")
     avgLogitsCalibrados = generaLogitsPromedio(logitsCalibrados)
-    ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(T_scaling(avgLogitsCalibrados, temperature)), test_labels)
-    print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
+    ECE, MCE, BRIER, NNL = CalculaCalibracion(avgLogitsCalibrados, test_labels)
+    print("\tECE: {:.3f}%\n\tMCE: {:.3f}%\n\tBRIER: {:.3f}\n\tNLL: {:.3f}".format(100*ECE, 100*MCE, BRIER, NNL))

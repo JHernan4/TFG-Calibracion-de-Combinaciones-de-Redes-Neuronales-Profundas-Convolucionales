@@ -70,7 +70,7 @@ def trainModel(trainLoader, seed, nModelo, path, nEpocas=250):
 
 
 if __name__ == '__main__':
-    PATH = './checkpoint'+'_densenet121'
+    PATH = './checkpointDensenet121_checkpoint'+'_densenet121'
     args = parse_args()
     nModelos = args.nModelos
     nEpocas = args.nEpocas
