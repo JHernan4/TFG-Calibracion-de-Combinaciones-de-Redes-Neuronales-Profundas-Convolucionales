@@ -1437,3 +1437,9 @@ epoch: 246/ total epoch: 250 best_acc: 76.05 train_acc: 99.954 %, test_acc: 75.8
 epoch: 247/ total epoch: 250 best_acc: 76.05 train_acc: 99.946 %, test_acc: 75.91 % train_loss: 0.01342212802451104,e test_loss: 0.9791351926326751 
 epoch: 248/ total epoch: 250 best_acc: 76.05 train_acc: 99.942 %, test_acc: 76.05 % train_loss: 0.013711405313573777,e test_loss: 0.9825243097543717 
 epoch: 249/ total epoch: 250 best_acc: 76.05 train_acc: 99.972 %, test_acc: 75.98 % train_loss: 0.01349585914425552,e test_loss: 0.9816519314050675 
+epoch: 201/ total epoch: 250 best_acc: 65.43 train_acc: 73.1 %, test_acc: 65.43 % train_loss: 0.8895246574878692,e test_loss: 1.2387930470705033 
+epoch: 202/ total epoch: 250 best_acc: 65.92 train_acc: 73.348 %, test_acc: 65.92 % train_loss: 0.8811116021871567,e test_loss: 1.2210557913780213 
+epoch: 203/ total epoch: 250 best_acc: 66.01 train_acc: 73.662 %, test_acc: 66.01 % train_loss: 0.8684669655561447,e test_loss: 1.2236299616098405 
+epoch: 204/ total epoch: 250 best_acc: 66.57 train_acc: 74.206 %, test_acc: 66.57 % train_loss: 0.8490213007926941,e test_loss: 1.2061964076757432 
+epoch: 205/ total epoch: 250 best_acc: 66.57 train_acc: 74.516 %, test_acc: 66.39 % train_loss: 0.841529962182045,e test_loss: 1.202941613793373 
+epoch: 206/ total epoch: 250 best_acc: 66.57 train_acc: 74.998 %, test_acc: 65.74 % train_loss: 0.8217368312478065,e test_loss: 1.2506871712207794 
