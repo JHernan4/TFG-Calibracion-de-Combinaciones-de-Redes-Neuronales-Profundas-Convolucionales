@@ -91,8 +91,8 @@ def calculaAcuracy(logits, labels, batch_size=100):
 
 
 #dados logits y labels, calcula ECE, MCE, BRIER y NNL
-def CalculaCalibracion(logits,labels):
-    return compute_calibration_measures(logits, labels, False, 100)
+def CalculaCalibracion(logits,labels, file):
+    return compute_calibration_measures(logits, labels, False, 100, file)
     
         
 
@@ -232,7 +232,7 @@ if __name__ == '__main__':
 
     testSize=9000 #tamanio del conjunto de test 
     args = parse_args()
-    PATH = './checkpointUpaNets/checkpoint'+'_upanets'
+    PATH = './checkpointUpaNetsOptim/checkpoint'+'_upanets'
     nModelos = args.nModelos
 
     workers = (int)(os.popen('nproc').read())
@@ -264,14 +264,14 @@ if __name__ == '__main__':
         logits, acc = test(model, test_loader)
         logitsModelos.append(logits)
         print("Accuracy modelo {}: {:.3f}".format(n+1, 100*acc))
-        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logits), test_labels)
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels, "DENSENET_modelo_"+str(n+1)+"no_calibrado")
         print("Medidas SIN CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
         print("==> Aplicando Temp Scaling...")
         temperature = temperatureScaling(model, validation_loader)
         logitsCal = T_scaling(logits, temperature)
         logitsCalibrados.append(logitsCal)
-        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels)
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels, "DENSENET_modelo_"+str(n+1)+"calibrado")
         print("Medidas CON CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
 
