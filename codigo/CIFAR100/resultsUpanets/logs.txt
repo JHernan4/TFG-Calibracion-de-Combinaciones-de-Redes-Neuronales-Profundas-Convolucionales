@@ -1456,3 +1456,16 @@ epoch: 216/ total epoch: 250 best_acc: 67.66 train_acc: 78.726 %, test_acc: 67.3
 epoch: 217/ total epoch: 250 best_acc: 67.66 train_acc: 79.112 %, test_acc: 67.24 % train_loss: 0.6726812242865562,e test_loss: 1.1785237163305282 
 epoch: 218/ total epoch: 250 best_acc: 67.66 train_acc: 79.578 %, test_acc: 67.54 % train_loss: 0.6629908695220947,e test_loss: 1.1880971217155456 
 epoch: 219/ total epoch: 250 best_acc: 68.19 train_acc: 79.914 %, test_acc: 68.19 % train_loss: 0.6520217616558075,e test_loss: 1.170267260670662 
+epoch: 220/ total epoch: 250 best_acc: 68.19 train_acc: 80.4 %, test_acc: 67.94 % train_loss: 0.6353246663808823,e test_loss: 1.167029692530632 
+epoch: 221/ total epoch: 250 best_acc: 68.29 train_acc: 80.784 %, test_acc: 68.29 % train_loss: 0.6208438740968705,e test_loss: 1.1885424506664277 
+epoch: 222/ total epoch: 250 best_acc: 68.29 train_acc: 81.134 %, test_acc: 67.8 % train_loss: 0.6077511707544326,e test_loss: 1.1781811439990997 
+epoch: 223/ total epoch: 250 best_acc: 68.4 train_acc: 81.706 %, test_acc: 68.4 % train_loss: 0.5912166903018952,e test_loss: 1.1778531181812286 
+epoch: 224/ total epoch: 250 best_acc: 68.47 train_acc: 82.104 %, test_acc: 68.47 % train_loss: 0.5763313801288604,e test_loss: 1.1609145230054856 
+epoch: 225/ total epoch: 250 best_acc: 68.47 train_acc: 82.354 %, test_acc: 68.09 % train_loss: 0.5707460533380508,e test_loss: 1.1739056050777434 
+epoch: 226/ total epoch: 250 best_acc: 68.47 train_acc: 82.448 %, test_acc: 68.22 % train_loss: 0.5592798791527748,e test_loss: 1.1768586868047715 
+epoch: 227/ total epoch: 250 best_acc: 68.51 train_acc: 83.208 %, test_acc: 68.51 % train_loss: 0.5426644920110703,e test_loss: 1.1677918314933777 
+epoch: 228/ total epoch: 250 best_acc: 68.56 train_acc: 83.214 %, test_acc: 68.56 % train_loss: 0.5372646673321724,e test_loss: 1.1550693637132645 
+epoch: 229/ total epoch: 250 best_acc: 68.68 train_acc: 83.994 %, test_acc: 68.68 % train_loss: 0.5170114990770817,e test_loss: 1.1610439258813858 
+epoch: 230/ total epoch: 250 best_acc: 68.69 train_acc: 84.334 %, test_acc: 68.69 % train_loss: 0.5055073579549789,e test_loss: 1.1649622005224227 
+epoch: 231/ total epoch: 250 best_acc: 69.1 train_acc: 84.378 %, test_acc: 69.1 % train_loss: 0.4986537148952484,e test_loss: 1.1755035680532455 
+epoch: 232/ total epoch: 250 best_acc: 69.1 train_acc: 84.888 %, test_acc: 68.78 % train_loss: 0.48536646097898484,e test_loss: 1.1671820598840714 
