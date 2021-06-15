@@ -278,7 +278,7 @@ if __name__ == '__main__':
         temperature = temperatureScaling(model, validation_loader)
         logitsCal = T_scaling(logits, temperature)
         logitsCalibrados.append(logitsCal)
-        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logits), test_labels, "modelo_"+str(n+1)+"calibrado")
+        ECE, MCE, BRIER, NNL = CalculaCalibracion(softmax(logitsCal), test_labels, "modelo_"+str(n+1)+"calibrado")
         print("Medidas CON CALIBRACIÓN para el modelo {}:".format(n+1))
         print("\tECE: {:.2f}%\n\tMCE: {:.2f}%\n\tBRIER: {:.2f}\n\tNLL: {:.2f}".format(100*ECE, 100*MCE, BRIER, NNL))
 
