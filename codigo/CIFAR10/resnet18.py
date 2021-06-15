@@ -164,7 +164,7 @@ for n in range(5):
     best_acc = 0
     seed = np.random.randint(2**10)
     torch.manual_seed(seed)
-    if n <= 1:
+    if n >= 1:
         break
     print("Modelo {}".format(n+1))
     print('==> Building model..')
