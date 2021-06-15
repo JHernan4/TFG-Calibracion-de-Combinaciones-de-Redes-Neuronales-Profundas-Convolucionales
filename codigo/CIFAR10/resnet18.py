@@ -15,7 +15,7 @@ import os
 import argparse
 import sys
 import matplotlib.pyplot as plt
-from torchsummary import summary
+
 import numpy as np
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
