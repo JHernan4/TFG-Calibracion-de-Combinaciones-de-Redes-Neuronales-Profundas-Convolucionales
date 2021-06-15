@@ -163,7 +163,8 @@ for n in range(5):
     best_acc = 0
     seed = np.random.randint(2**10)
     torch.manual_seed(seed)
-    
+    if n < 2:
+       continue
     print("Modelo {}".format(n+1))
     print('==> Building model..')
     net =  EfficientNetB0(classes)
@@ -213,6 +214,6 @@ for n in range(5):
     plt.xlabel('epoch')
     plt.legend(loc=0)
         
-    plt.savefig(save_path+'/Upanets_train_history_'+str(n+1)+'.png')
+    plt.savefig(save_path+'/efficientnetB0_train_history_'+str(n+1)+'.png')
     plt.clf()
     print("Gráfica guardada correctamente")
