@@ -25,7 +25,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 '''path setting'''
 parser = argparse.ArgumentParser(description='Train and Test UPANets with PyTorch')
 parser.add_argument('--pkg_path', default='./', type=str, help='package path')
-parser.add_argument('--save_path', default='./resultsResnet50/', type=str, help='package path')
+parser.add_argument('--save_path', default='./resultsResnet18/', type=str, help='package path')
 
 '''experiment setting'''
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -49,7 +49,7 @@ if os.path.isdir(save_path) == False:
 sys.path.append(pkgpath)
 
 sys.path.append("../models")
-from resnet import ResNet50
+from resnet import ResNet18
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 best_acc = 0  # best test accuracy
@@ -169,7 +169,7 @@ for n in range(5):
         break
     print("Modelo {}".format(n+1))
     print('==> Building model..')
-    net =  ResNet50(num_classes=classes)
+    net =  ResNet(num_classes=classes)
     net = net.to(device)
     if device == 'cuda':
         net = torch.nn.DataParallel(net)
